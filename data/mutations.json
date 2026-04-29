@@ -1,0 +1,30 @@
+[
+    {
+        "id": "base",
+        "name": "Basic Form",
+        "description": "The starting point of your evolution.",
+        "req_item": null,
+        "parent": null
+    },
+    {
+        "id": "claw_1",
+        "name": "Bone Claw",
+        "description": "Sharp bone protrusions. +5 ATK.",
+        "req_item": "mat_tail",
+        "parent": "base"
+    },
+    {
+        "id": "hide_1",
+        "name": "Thick Hide",
+        "description": "Hardened skin. +5 DEF.",
+        "req_item": "mat_slime_goo",
+        "parent": "base"
+    },
+    {
+        "id": "claw_2_venom",
+        "name": "Venomous Claw",
+        "description": "Poison damage. Requires Bone Claw.",
+        "req_item": "mat_stinger",
+        "parent": "claw_1"
+    }
+]

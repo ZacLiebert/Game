@@ -1,0 +1,22 @@
+[
+    {
+        "id": "e_rat",
+        "name": "Mutant Rat",
+        "hp": 20,
+        "attack": 8,
+        "defense": 2,
+        "speed": 15,
+        "sprite": "rat.png",
+        "loot_id": "mat_tail"
+    },
+    {
+        "id": "e_slime",
+        "name": "Sludge Slime",
+        "hp": 15,
+        "attack": 5,
+        "defense": 10,
+        "speed": 5,
+        "sprite": "slime.png",
+        "loot_id": "mat_slime_goo"
+    }
+]

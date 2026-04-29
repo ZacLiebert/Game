@@ -1,0 +1,15 @@
+[
+    {
+        "id": "pot_hp_small",
+        "name": "Small Health Potion",
+        "description": "Heals 20 HP.",
+        "type": "potion",
+        "heal_amount": 20
+    },
+    {
+        "id": "mat_tail",
+        "name": "Rat Tail",
+        "description": "A mutated part used for crafting.",
+        "type": "material"
+    }
+]

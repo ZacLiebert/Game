@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+prompt.py
+tempCodeRunnerFile.py
+all_code.txt
