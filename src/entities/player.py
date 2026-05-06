@@ -1,84 +1,184 @@
 import pygame
 from src.graphics.sprite_manager import SpriteManager
 
+
 class Player:
     """
-    Handles the player's overworld representation, movement, and collision.
+    Handles the player's overworld representation, smooth tile movement,
+    collision, and walking animation.
+
+    Movement style:
+    - One input step = one tile.
+    - Movement is smooth, not instant.
+    - Collision box = 1 tile.
+    - Sprite is larger than 1 tile so Zac visually fits with bushes/grass.
     """
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 40, 40)
-        self.speed = 5
-        
-        # Load the 4x4 sprite sheet you uploaded
-        self.animations = SpriteManager.load_sprite_sheet("zac.png", rows=4, cols=4)
-        
-        # Based on your image: Row 0=Down, 1=Up, 2=Left, 3=Right
+
+    def __init__(self, x, y, tile_size=64):
+        self.tile_size = tile_size
+
+        # Store position.
+        self.x = float(x)
+        self.y = float(y)
+
+        # Collision hitbox = full tile size.
+        self.rect = pygame.Rect(x, y, tile_size, tile_size)
+
+        # Sprite display size.
+        # Bigger than one tile so the character looks large enough
+        # compared to bushes / grass.
+        self.sprite_width = 112
+        self.sprite_height = 112
+
+        # Center 112x112 sprite on a 64x64 tile.
+        # X: centered
+        # Y: pushed upward a bit so the feet stay on the tile naturally
+        self.draw_offset_x = -24
+        self.draw_offset_y = -28
+
+        # Smooth grid movement settings.
+        self.is_moving = False
+        self.target_x = self.rect.x
+        self.target_y = self.rect.y
+
+        # Pixels per frame.
+        self.move_speed = 8
+
+        # Zac sprite sheet is 4 rows x 6 columns.
+        self.frame_count = 6
+
+        self.animations = SpriteManager.load_sprite_sheet(
+            "zac.png",
+            rows=4,
+            cols=self.frame_count,
+            target_width=self.sprite_width,
+            target_height=self.sprite_height
+        )
+
+        # Sprite sheet row order:
+        # Row 0 = Down / Front
+        # Row 1 = Left
+        # Row 2 = Right
+        # Row 3 = Up / Back
         self.DIR_DOWN = 0
-        self.DIR_UP = 1
-        self.DIR_LEFT = 2
-        self.DIR_RIGHT = 3
-        
+        self.DIR_LEFT = 1
+        self.DIR_RIGHT = 2
+        self.DIR_UP = 3
+
         self.current_dir = self.DIR_DOWN
+
+        # Animation settings.
         self.frame_index = 0
-        self.animation_speed = 0.15 # Controls how fast the legs move
-        
-        # Initialize the default static sprite so MapScreen can read it
-        self.sprite = self.animations[self.current_dir][0]
+        self.animation_timer = pygame.time.get_ticks()
+        self.animation_delay = 100
+
+        self.sprite = self.animations[self.current_dir][self.frame_index]
 
     def handle_movement(self, keys, collision_rects):
         """
-        Moves the player, checks for wall collisions, and updates the animation frame.
+        Handles smooth one-tile movement.
+
+        Returns:
+            True only when Zac has just finished moving into a new tile.
+            False otherwise.
         """
-        dx, dy = 0, 0
-        moving = False
-        
-        # 1. Calculate intended movement and update direction
+        if self.is_moving:
+            return self._continue_movement()
+
+        dx = 0
+        dy = 0
+
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -self.speed
+            dx = -self.tile_size
             self.current_dir = self.DIR_LEFT
-            moving = True
+
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = self.speed
+            dx = self.tile_size
             self.current_dir = self.DIR_RIGHT
-            moving = True
+
         elif keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -self.speed
+            dy = -self.tile_size
             self.current_dir = self.DIR_UP
-            moving = True
+
         elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = self.speed
+            dy = self.tile_size
             self.current_dir = self.DIR_DOWN
-            moving = True
 
-        # 2. Apply X movement and check collisions
-        self.rect.x += dx
-        for wall in collision_rects:
-            if self.rect.colliderect(wall):
-                if dx > 0: # Moving right, hit left side of wall
-                    self.rect.right = wall.left
-                if dx < 0: # Moving left, hit right side of wall
-                    self.rect.left = wall.right
-
-        # 3. Apply Y movement and check collisions
-        self.rect.y += dy
-        for wall in collision_rects:
-            if self.rect.colliderect(wall):
-                if dy > 0: # Moving down, hit top of wall
-                    self.rect.bottom = wall.top
-                if dy < 0: # Moving up, hit bottom of wall
-                    self.rect.top = wall.bottom
-
-        # 4. Handle Animation Logic
-        if moving:
-            self.frame_index += self.animation_speed
-            if self.frame_index >= 4: # Loop back after 4 frames
-                self.frame_index = 0
         else:
-            self.frame_index = 0 # Return to idle stance if stopped
-            
-        # Dynamically update the sprite property that MapScreen draws
-        self.sprite = self.animations[self.current_dir][int(self.frame_index)]
+            self.frame_index = 0
+            self.sprite = self.animations[self.current_dir][self.frame_index]
+            return False
+
+        return self._start_tile_move(dx, dy, collision_rects)
+
+    def _start_tile_move(self, dx, dy, collision_rects):
+        """
+        Starts moving toward the next tile if it is not blocked.
+        """
+        target_rect = self.rect.move(dx, dy)
+
+        for wall in collision_rects:
+            if target_rect.colliderect(wall):
+                self.frame_index = 0
+                self.sprite = self.animations[self.current_dir][self.frame_index]
+                return False
+
+        self.target_x = target_rect.x
+        self.target_y = target_rect.y
+        self.is_moving = True
+
+        self._update_animation()
+        return False
+
+    def _continue_movement(self):
+        """
+        Moves Zac smoothly toward the target tile.
+        """
+        if self.rect.x < self.target_x:
+            self.rect.x += min(self.move_speed, self.target_x - self.rect.x)
+
+        elif self.rect.x > self.target_x:
+            self.rect.x -= min(self.move_speed, self.rect.x - self.target_x)
+
+        if self.rect.y < self.target_y:
+            self.rect.y += min(self.move_speed, self.target_y - self.rect.y)
+
+        elif self.rect.y > self.target_y:
+            self.rect.y -= min(self.move_speed, self.rect.y - self.target_y)
+
+        self.x = float(self.rect.x)
+        self.y = float(self.rect.y)
+
+        self._update_animation()
+
+        if self.rect.x == self.target_x and self.rect.y == self.target_y:
+            self.is_moving = False
+            self.x = float(self.rect.x)
+            self.y = float(self.rect.y)
+            return True
+
+        return False
+
+    def _update_animation(self):
+        """
+        Updates walking animation while moving.
+        """
+        current_time = pygame.time.get_ticks()
+
+        if current_time - self.animation_timer >= self.animation_delay:
+            self.animation_timer = current_time
+            self.frame_index = (self.frame_index + 1) % self.frame_count
+
+        self.sprite = self.animations[self.current_dir][self.frame_index]
 
     def draw(self, surface):
-        """Draws the player onto the map."""
-        surface.blit(self.sprite, (self.rect.x, self.rect.y))
+        """
+        Draws the player onto the map.
+        """
+        surface.blit(
+            self.sprite,
+            (
+                self.rect.x + self.draw_offset_x,
+                self.rect.y + self.draw_offset_y
+            )
+        )

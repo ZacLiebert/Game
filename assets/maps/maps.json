@@ -1,0 +1,65 @@
+{
+    "forest_01": {
+        "name": "Whispering Woods",
+        "map_file": "forest_01.txt",
+        "tile_sprites": {
+            ".": "grass.png",
+            "#": "tree.png",
+            "B": "bush.png",
+            "S": "sand.png"
+        },
+        "solid_tiles": ["#"],
+        "npcs": [
+            {
+                "name": "Old Biologist",
+                "x": 512,
+                "y": 384,
+                "enemies": [],
+                "sprite": "tanker_battle.png",
+                "type": "dialogue",
+                "dialogue": [
+                    "This island was once peaceful.",
+                    "Then the mutation outbreak began.",
+                    "Collect beast materials, unlock a mutation, then contain the bear.",
+                    "Only a stabilized Zac can face Alpha Chimera."
+                ]
+            },
+            {
+                "name": "Island Merchant",
+                "x": 704,
+                "y": 384,
+                "enemies": [],
+                "sprite": "rogue_battle.png",
+                "type": "shop",
+                "shop_items": [
+                    "pot_hp_small"
+                ],
+                "dialogue": [
+                    "Need supplies? I have a few things for sale."
+                ]
+            },
+            {
+                "name": "Mutant Bear",
+                "x": 1152,
+                "y": 512,
+                "enemies": ["e_bear", "e_boar", "e_rabbit"],
+                "sprite": "bear.png",
+                "type": "boss",
+                "required_quest": "contain_bear"
+            },
+            {
+                "name": "Alpha Chimera",
+                "x": 1408,
+                "y": 704,
+                "enemies": ["e_chimera", "e_tiger", "e_snake"],
+                "sprite": "bear.png",
+                "type": "final_boss",
+                "required_quest": "final_boss",
+                "dialogue": [
+                    "The outbreak source is here.",
+                    "Defeat Alpha Chimera to end the mutation crisis."
+                ]
+            }
+        ]
+    }
+}

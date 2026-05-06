@@ -2,29 +2,171 @@
     {
         "id": "base",
         "name": "Basic Form",
-        "description": "The starting point of your evolution.",
+        "description": "The starting point of Zac's biological evolution.",
         "req_item": null,
+        "req_count": 0,
         "parent": null
     },
+
     {
-        "id": "claw_1",
-        "name": "Bone Claw",
-        "description": "Sharp bone protrusions. +5 ATK.",
-        "req_item": "mat_tail",
-        "parent": "base"
+        "id": "enhanced_senses",
+        "name": "Enhanced Senses",
+        "description": "Zac's nervous system becomes more sensitive, allowing him to detect movement, vibration, and sound more effectively.",
+        "req_item": "echo_membrane",
+        "req_count": 1,
+        "parent": "base",
+        "stats_modifier": {
+            "speed": 1
+        },
+        "unlock_skill": null
     },
     {
-        "id": "hide_1",
+        "id": "echolocation",
+        "name": "Echolocation",
+        "description": "Zac develops bat-like sound perception, allowing him to locate enemies through echoes. Unlocks Sonic Pulse.",
+        "req_item": "echo_membrane",
+        "req_count": 2,
+        "parent": "enhanced_senses",
+        "stats_modifier": {
+            "speed": 1
+        },
+        "unlock_skill": "sonic_pulse"
+    },
+    {
+        "id": "sonic_pulse_organ",
+        "name": "Sonic Pulse Organ",
+        "description": "Zac's sound-sensing organ mutates further, allowing him to release stronger sound waves that disrupt enemies.",
+        "req_item": "echo_membrane",
+        "req_count": 4,
+        "parent": "echolocation",
+        "stats_modifier": {
+            "speed": 1
+        },
+        "unlock_skill": null
+    },
+    {
+        "id": "predator_reflex",
+        "name": "Predator Reflex",
+        "description": "Zac's senses connect directly to his muscles, improving his reaction speed like a hunting beast.",
+        "req_item": "rabbit_foot",
+        "req_count": 2,
+        "parent": "enhanced_senses",
+        "stats_modifier": {
+            "speed": 2
+        },
+        "unlock_skill": null
+    },
+    {
+        "id": "swift_legs",
+        "name": "Swift Legs",
+        "description": "Zac's legs mutate for faster movement and quicker combat reaction. Unlocks Beast Focus.",
+        "req_item": "rabbit_foot",
+        "req_count": 4,
+        "parent": "predator_reflex",
+        "stats_modifier": {
+            "speed": 2
+        },
+        "unlock_skill": "beast_focus"
+    },
+
+    {
+        "id": "hardened_body",
+        "name": "Hardened Body",
+        "description": "Zac's body begins to toughen, preparing his skin and bones for defensive mutations.",
+        "req_item": "boar_hide",
+        "req_count": 1,
+        "parent": "base",
+        "stats_modifier": {
+            "hp": 10,
+            "defense": 1
+        },
+        "unlock_skill": null
+    },
+    {
+        "id": "thick_hide",
         "name": "Thick Hide",
-        "description": "Hardened skin. +5 DEF.",
-        "req_item": "mat_slime_goo",
-        "parent": "base"
+        "description": "Zac's skin hardens like a wild beast, reducing damage from enemy attacks.",
+        "req_item": "boar_hide",
+        "req_count": 2,
+        "parent": "hardened_body",
+        "stats_modifier": {
+            "hp": 20,
+            "defense": 1
+        },
+        "unlock_skill": null
     },
     {
-        "id": "claw_2_venom",
-        "name": "Venomous Claw",
-        "description": "Poison damage. Requires Bone Claw.",
-        "req_item": "mat_stinger",
-        "parent": "claw_1"
+        "id": "bone_plating",
+        "name": "Bone Plating",
+        "description": "Dense bone plates grow over Zac's body, forming a natural biological armor.",
+        "req_item": "bear_bone",
+        "req_count": 4,
+        "parent": "thick_hide",
+        "stats_modifier": {
+            "hp": 25,
+            "defense": 2
+        },
+        "unlock_skill": null
+    },
+
+    {
+        "id": "predator_weapons",
+        "name": "Predator Weapons",
+        "description": "Zac's body begins adapting for close-range hunting by developing natural offensive structures.",
+        "req_item": "tiger_claw",
+        "req_count": 1,
+        "parent": "base",
+        "stats_modifier": {
+            "attack": 1
+        },
+        "unlock_skill": null
+    },
+    {
+        "id": "bone_claw",
+        "name": "Bone Claw",
+        "description": "Sharp beast claws grow from Zac's hands, giving him stronger physical attacks.",
+        "req_item": "tiger_claw",
+        "req_count": 2,
+        "parent": "predator_weapons",
+        "stats_modifier": {
+            "attack": 2
+        },
+        "unlock_skill": null
+    },
+    {
+        "id": "rending_talons",
+        "name": "Rending Talons",
+        "description": "Zac's claws become longer and sharper, specialized for tearing through enemy defenses.",
+        "req_item": "tiger_claw",
+        "req_count": 4,
+        "parent": "bone_claw",
+        "stats_modifier": {
+            "attack": 3
+        },
+        "unlock_skill": null
+    },
+    {
+        "id": "venom_fang",
+        "name": "Venom Fang",
+        "description": "Zac develops venomous fangs, allowing him to poison enemies through bite attacks. Unlocks Venom Bite.",
+        "req_item": "snake_venom",
+        "req_count": 2,
+        "parent": "predator_weapons",
+        "stats_modifier": {
+            "attack": 1
+        },
+        "unlock_skill": "venom_bite"
+    },
+    {
+        "id": "toxic_bite",
+        "name": "Toxic Bite",
+        "description": "Zac's venom glands become stronger, making his poison-based attacks more dangerous.",
+        "req_item": "snake_venom",
+        "req_count": 4,
+        "parent": "venom_fang",
+        "stats_modifier": {
+            "attack": 2
+        },
+        "unlock_skill": null
     }
 ]

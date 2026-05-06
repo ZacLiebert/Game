@@ -1,15 +1,59 @@
 [
     {
+        "id": "tiger_claw",
+        "name": "Tiger Claw",
+        "description": "A sharp claw from a mutated tiger beast. Used to unlock Bone Claw.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 12
+    },
+    {
+        "id": "snake_venom",
+        "name": "Snake Venom",
+        "description": "Toxic venom extracted from a mutated snake. Used to unlock Venom Fang.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 12
+    },
+    {
+        "id": "boar_hide",
+        "name": "Boar Hide",
+        "description": "Thick hide from a wild mutant boar. Used to unlock Thick Hide.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 14
+    },
+    {
+        "id": "bear_bone",
+        "name": "Bear Bone",
+        "description": "A dense bone fragment from a mutant bear. Used to unlock Bone Plating.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 20
+    },
+    {
+        "id": "rabbit_foot",
+        "name": "Rabbit Foot",
+        "description": "A lightweight foot from a fast rabbit beast. Used to unlock Swift Legs.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 10
+    },
+    {
+        "id": "echo_membrane",
+        "name": "Echo Membrane",
+        "description": "A sensitive membrane from a cave bat. Used to unlock Echolocation.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 11
+    },
+    {
         "id": "pot_hp_small",
         "name": "Small Health Potion",
         "description": "Heals 20 HP.",
         "type": "potion",
-        "heal_amount": 20
-    },
-    {
-        "id": "mat_tail",
-        "name": "Rat Tail",
-        "description": "A mutated part used for crafting.",
-        "type": "material"
+        "heal_amount": 20,
+        "buy_price": 25,
+        "sell_price": 8
     }
 ]

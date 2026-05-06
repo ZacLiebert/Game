@@ -1,95 +1,187 @@
+import hashlib
+import hmac
 import json
-import os
+from pathlib import Path
+
 
 class SaveEncryption:
     """
-    Symmetric encryption system using the RC4 stream cipher algorithm.
-    Secures game save files to prevent stats and inventory manipulation.
+    Practical save file integrity protection using HMAC-SHA256 only.
+
+    This version does NOT encrypt the save file.
+    It stores readable JSON data plus an HMAC signature.
+
+    Benefits:
+    - Simple.
+    - No external library required.
+    - Detects if the save file was modified.
+    - More practical than weak custom encryption for this project.
+
+    Limitation:
+    - Players can read the save file.
+    - Players cannot modify it successfully unless they know the secret key.
     """
 
-    @staticmethod
-    def _ksa(key):
-        """
-        Key-Scheduling Algorithm (KSA).
-        Initializes the permutation in the array "S" based on the provided key.
-        """
-        key_length = len(key)
-        S = list(range(256))
-        j = 0
-        for i in range(256):
-            j = (j + S[i] + key[i % key_length]) % 256
-            S[i], S[j] = S[j], S[i]
-        return S
+    VERSION = 3
+    ALGORITHM = "HMAC-SHA256"
+    DEFAULT_SECRET_KEY = "UIT_MUTATION_SECRET"
+
+    # ============================================================
+    # HMAC HELPERS
+    # ============================================================
 
     @staticmethod
-    def _prga(S, data_length):
-        """
-        Pseudo-Random Generation Algorithm (PRGA).
-        Generates the keystream used for XORing with the data.
-        """
-        i = 0
-        j = 0
-        keystream = []
-        for _ in range(data_length):
-            i = (i + 1) % 256
-            j = (j + S[i]) % 256
-            S[i], S[j] = S[j], S[i]
-            K = S[(S[i] + S[j]) % 256]
-            keystream.append(K)
-        return keystream
+    def _normalize_key(secret_key):
+        if isinstance(secret_key, bytes):
+            return secret_key
+
+        return str(secret_key).encode("utf-8")
 
     @staticmethod
-    def process(data, key_string):
+    def _serialize_data(data):
         """
-        Encrypts or decrypts the data.
-        Since RC4 uses XOR, encryption and decryption are the exact same mathematical operation.
-        
-        Args:
-            data (bytes): The data to encrypt/decrypt.
-            key_string (str): The secret key.
-            
+        Converts save data into stable JSON bytes.
+
+        Stable serialization is important because HMAC must be calculated
+        from the exact same data format every time.
+        """
+        return json.dumps(
+            data,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":")
+        ).encode("utf-8")
+
+    @staticmethod
+    def _create_hmac(data, secret_key):
+        """
+        Creates HMAC-SHA256 signature from save data.
+        """
+        key = SaveEncryption._normalize_key(secret_key)
+        message = SaveEncryption._serialize_data(data)
+
+        return hmac.new(
+            key,
+            message,
+            hashlib.sha256
+        ).hexdigest()
+
+    @staticmethod
+    def _verify_hmac(data, received_hmac, secret_key):
+        """
+        Verifies whether the stored HMAC matches the save data.
+        """
+        expected_hmac = SaveEncryption._create_hmac(data, secret_key)
+
+        return hmac.compare_digest(
+            expected_hmac,
+            str(received_hmac)
+        )
+
+    # ============================================================
+    # SAVE / LOAD API
+    # ============================================================
+
+    @staticmethod
+    def save_game(save_dict, file_path, secret_key=DEFAULT_SECRET_KEY):
+        """
+        Saves readable JSON data with an HMAC signature.
+
         Returns:
-            bytes: The processed data.
+            True if save succeeded.
+            False if save failed.
         """
-        key = [ord(c) for c in key_string]
-        S = SaveEncryption._ksa(key)
-        keystream = SaveEncryption._prga(S, len(data))
-        
-        # XOR the data bytes with the keystream bytes
-        res = bytearray()
-        for i in range(len(data)):
-            res.append(data[i] ^ keystream[i])
-        return bytes(res)
+        file_path = Path(file_path)
 
-    @staticmethod
-    def save_game(save_dict, file_path, secret_key="UIT_MUTATION_SECRET"):
-        """
-        Serializes a Python dictionary to JSON, encrypts it, and writes to a file.
-        """
-        json_data = json.dumps(save_dict).encode('utf-8')
-        encrypted_data = SaveEncryption.process(json_data, secret_key)
-        
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        
-        with open(file_path, 'wb') as f:
-            f.write(encrypted_data)
-        return True
-
-    @staticmethod
-    def load_game(file_path, secret_key="UIT_MUTATION_SECRET"):
-        """
-        Reads an encrypted file, decrypts it, and deserializes back to a dictionary.
-        """
-        if not os.path.exists(file_path):
-            return None
-            
-        with open(file_path, 'rb') as f:
-            encrypted_data = f.read()
-            
         try:
-            decrypted_data = SaveEncryption.process(encrypted_data, secret_key)
-            return json.loads(decrypted_data.decode('utf-8'))
+            signature = SaveEncryption._create_hmac(
+                save_dict,
+                secret_key
+            )
+
+            save_container = {
+                "version": SaveEncryption.VERSION,
+                "algorithm": SaveEncryption.ALGORITHM,
+                "data": save_dict,
+                "hmac": signature
+            }
+
+            encoded_container = json.dumps(
+                save_container,
+                ensure_ascii=False,
+                indent=2
+            ).encode("utf-8")
+
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with file_path.open("wb") as f:
+                f.write(encoded_container)
+
+            return True
+
         except Exception as e:
-            print(f"Failed to load save file. It may be corrupted or tampered with. Error: {e}")
+            print(f"Failed to save game. Error: {e}")
+            return False
+
+    @staticmethod
+    def load_game(file_path, secret_key=DEFAULT_SECRET_KEY):
+        """
+        Loads save data only if the HMAC signature is valid.
+
+        Returns:
+            dict if load succeeds.
+            None if the file is missing, modified, corrupted, or invalid.
+        """
+        file_path = Path(file_path)
+
+        if not file_path.exists():
+            return None
+
+        try:
+            with file_path.open("rb") as f:
+                raw_data = f.read()
+
+            try:
+                save_container = json.loads(raw_data.decode("utf-8"))
+            except Exception:
+                print("Failed to load save file. Invalid JSON format.")
+                return None
+
+            if not isinstance(save_container, dict):
+                print("Failed to load save file. Save container is invalid.")
+                return None
+
+            version = save_container.get("version")
+            algorithm = save_container.get("algorithm")
+            save_data = save_container.get("data")
+            received_hmac = save_container.get("hmac")
+
+            if version != SaveEncryption.VERSION:
+                print("Failed to load save file. Unsupported save version.")
+                return None
+
+            if algorithm != SaveEncryption.ALGORITHM:
+                print("Failed to load save file. Unsupported save algorithm.")
+                return None
+
+            if not isinstance(save_data, dict):
+                print("Failed to load save file. Save data is invalid.")
+                return None
+
+            if not received_hmac:
+                print("Failed to load save file. Missing HMAC signature.")
+                return None
+
+            if not SaveEncryption._verify_hmac(
+                save_data,
+                received_hmac,
+                secret_key
+            ):
+                print("Failed to load save file. Save file was modified or corrupted.")
+                return None
+
+            return save_data
+
+        except Exception as e:
+            print(f"Failed to load save file. Error: {e}")
             return None

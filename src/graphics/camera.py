@@ -2,7 +2,7 @@ import pygame
 
 class Camera:
     def __init__(self, width, height, map_width, map_height):
-        # The rectangle representing the camera's view [cite: 176]
+        # The rectangle representing the camera's view
         self.camera = pygame.Rect(0, 0, width, height)
         self.width = width
         self.height = height
@@ -15,9 +15,7 @@ class Camera:
 
     def update(self, target_rect):
         """Strictly centers the camera on the player at all times."""
-        # Calculate center position relative to the screen [cite: 177]
         x = -target_rect.centerx + int(self.width / 2)
         y = -target_rect.centery + int(self.height / 2)
 
-        # Apply the coordinates to the camera rect [cite: 178]
         self.camera.topleft = (x, y)

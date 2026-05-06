@@ -1,54 +1,101 @@
-from src.data_structures.max_heap import MaxHeap
-
 class CombatManager:
     """
     Manages a 3vs3 turn-based battle.
-    Uses a Max Heap to coordinate turns for all 6 entities based on Speed.
+
+    This version uses linear scan instead of MaxHeap.
+
+    Why:
+    - Combat only has up to 6 entities.
+    - Speed can change during a round.
+    - Linear scan always uses the latest speed value.
+    - Simpler and less bug-prone than updating heap priority.
     """
+
     def __init__(self, player_team, enemy_team):
-        """
-        Args:
-            player_team (list): Exactly 3 Player Entity objects.
-            enemy_team (list): Exactly 3 Monster Entity objects.
-        """
         self.player_team = player_team
         self.enemy_team = enemy_team
-        self.turn_queue = MaxHeap()
+
+        # Remaining entities that have not acted in the current round.
+        self.turn_queue = []
+
         self.round_count = 0
 
     def prepare_round(self):
         """
-        Re-populates the Max Heap with all surviving members from both teams.
-        This handles up to 6 entities in a single priority queue.
+        Starts a new round and collects all living entities.
         """
         self.round_count += 1
-        self.turn_queue = MaxHeap()
-        
-        # Insert all living players into the turn queue
+        self.turn_queue = []
+
         for player in self.player_team:
             if player.is_alive():
-                self.turn_queue.insert(player)
-                
-        # Insert all living enemies into the turn queue
+                self.turn_queue.append(player)
+
         for enemy in self.enemy_team:
             if enemy.is_alive():
-                self.turn_queue.insert(enemy)
+                self.turn_queue.append(enemy)
 
     def get_next_in_line(self):
-        """Extracts the fastest remaining entity for the current turn."""
-        return self.turn_queue.extract_max()
+        """
+        Finds and removes the living entity with the highest current speed.
+
+        Since speed can change during combat, this method scans the remaining
+        turn_queue every time. That means speed buffs/debuffs affect the current
+        round immediately if the target has not acted yet.
+        """
+        self.remove_dead_from_queue()
+
+        if not self.turn_queue:
+            return None
+
+        best_index = 0
+        best_entity = self.turn_queue[0]
+
+        for i in range(1, len(self.turn_queue)):
+            entity = self.turn_queue[i]
+
+            if entity.speed > best_entity.speed:
+                best_index = i
+                best_entity = entity
+
+        return self.turn_queue.pop(best_index)
+
+    def refresh_turn_order(self):
+        """
+        Keeps compatibility with CombatScreen.
+
+        With linear scan, we do not need to rebuild a heap.
+        We only remove dead entities. The next get_next_in_line() call will
+        automatically use the latest speed values.
+        """
+        self.remove_dead_from_queue()
+
+    def remove_dead_from_queue(self):
+        """
+        Removes dead entities from the remaining turn queue.
+        """
+        self.turn_queue = [
+            entity for entity in self.turn_queue
+            if entity.is_alive()
+        ]
 
     def get_valid_targets(self, target_team):
         """
-        Returns a list of entities in the target team that are still alive.
-        Useful for the UI to show which enemies can be clicked/attacked.
+        Returns living entities in the target team.
         """
-        return [entity for entity in target_team if entity.is_alive()]
+        return [
+            entity for entity in target_team
+            if entity.is_alive()
+        ]
 
     def check_battle_status(self):
-        """Determines if a team has been completely defeated."""
+        """
+        Determines whether the battle is over.
+        """
         if not self.get_valid_targets(self.enemy_team):
             return "VICTORY"
+
         if not self.get_valid_targets(self.player_team):
             return "DEFEAT"
+
         return "ONGOING"
