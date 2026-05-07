@@ -2,6 +2,7 @@ import pygame
 
 from src.screens.base_screen import BaseScreen
 from src.ui.theme import UITheme
+from src.ui.fonts import get_font
 from src.ui.widgets import draw_panel, draw_text, draw_centered_text, draw_button
 
 
@@ -13,10 +14,10 @@ class GameOverScreen(BaseScreen):
     def __init__(self, screen_manager):
         super().__init__(screen_manager)
 
-        self.title_font = pygame.font.SysFont(None, 76)
-        self.header_font = pygame.font.SysFont(None, UITheme.HEADER_SIZE)
-        self.font = pygame.font.SysFont(None, UITheme.BODY_SIZE)
-        self.small_font = pygame.font.SysFont(None, UITheme.SMALL_SIZE)
+        self.title_font = get_font(76)
+        self.header_font = get_font(UITheme.HEADER_SIZE)
+        self.font = get_font(UITheme.BODY_SIZE)
+        self.small_font = get_font(UITheme.SMALL_SIZE)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:

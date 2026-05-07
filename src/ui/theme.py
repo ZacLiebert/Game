@@ -10,27 +10,28 @@ class UITheme:
 
     PANEL = (28, 34, 48)
     PANEL_DARK = (18, 22, 32)
-    PANEL_LIGHT = (42, 50, 68)
+    PANEL_LIGHT = (46, 56, 76)
 
     # Accent colors
-    ACCENT = (0, 220, 150)
-    ACCENT_DARK = (0, 140, 100)
-    ACCENT_GOLD = (255, 210, 80)
+    ACCENT = (0, 235, 165)
+    ACCENT_DARK = (0, 150, 110)
+    ACCENT_GOLD = (255, 215, 85)
 
     # Text colors
-    TEXT = (235, 240, 245)
-    TEXT_DIM = (160, 170, 180)
-    TEXT_DARK = (80, 90, 100)
+    # Brighter text fixes the thin / blurry look.
+    TEXT = (248, 250, 255)
+    TEXT_DIM = (198, 206, 218)
+    TEXT_DARK = (100, 112, 128)
 
     # Status colors
-    SUCCESS = (100, 230, 130)
-    WARNING = (255, 190, 80)
-    DANGER = (230, 80, 80)
+    SUCCESS = (110, 245, 145)
+    WARNING = (255, 200, 90)
+    DANGER = (240, 90, 90)
 
     # Combat colors
     HP_BG = (90, 30, 30)
-    HP_FILL = (70, 220, 110)
-    MANA_FILL = (80, 160, 255)
+    HP_FILL = (75, 230, 120)
+    MANA_FILL = (90, 170, 255)
 
     # UI sizes
     BORDER_RADIUS = 12

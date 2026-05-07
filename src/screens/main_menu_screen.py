@@ -5,6 +5,7 @@ from src.screens.base_screen import BaseScreen
 from src.data_structures.cryptography import SaveEncryption
 
 from src.ui.theme import UITheme
+from src.ui.fonts import get_font
 from src.ui.widgets import draw_shadow_panel, draw_button, draw_centered_text
 
 
@@ -22,10 +23,10 @@ class MainMenuScreen(BaseScreen):
     def __init__(self, screen_manager):
         super().__init__(screen_manager)
 
-        self.title_font = pygame.font.SysFont(None, UITheme.TITLE_SIZE)
-        self.header_font = pygame.font.SysFont(None, UITheme.HEADER_SIZE)
-        self.menu_font = pygame.font.SysFont(None, UITheme.BODY_SIZE)
-        self.small_font = pygame.font.SysFont(None, UITheme.SMALL_SIZE)
+        self.title_font = get_font(UITheme.TITLE_SIZE)
+        self.header_font = get_font(UITheme.HEADER_SIZE)
+        self.menu_font = get_font(UITheme.BODY_SIZE)
+        self.small_font = get_font(UITheme.SMALL_SIZE)
 
         self.save_file_path = DEFAULT_SAVE_FILE
         self.status_message = ""

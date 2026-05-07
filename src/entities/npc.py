@@ -13,6 +13,10 @@ class NPC:
     - Shop NPCs
     - Static sprites
     - 4x6 sprite sheets
+
+    Important:
+    - self.rect is the NPC anchor position.
+    - self.collision_rect is the foot/body hitbox used for collision.
     """
 
     def __init__(
@@ -33,10 +37,22 @@ class NPC:
         self.x = float(x)
         self.y = float(y)
 
-        # Collision hitbox
+        # Anchor rect.
+        # Used as the NPC's map position and draw reference.
         self.rect = pygame.Rect(x, y, 40, 40)
 
-        # Enemy IDs used when entering combat
+        # NPC collision box.
+        # This is larger than the tiny foot-only hitbox so Zac will not
+        # visually stick into the NPC sprite, but it is still smaller than
+        # the full 64x64 sprite area so it does not feel like a huge wall.
+        self.collision_rect = pygame.Rect(
+            x + 6,
+            y + 18,
+            52,
+            42
+        )
+
+        # Enemy IDs used when entering combat.
         self.enemy_ids = enemy_ids if enemy_ids else []
 
         # NPC type:
@@ -46,9 +62,13 @@ class NPC:
         # "shop" = opens shop screen
         self.npc_type = npc_type
 
-        # Dialogue / shop data
+        # Dialogue / shop data.
         self.dialogue = dialogue if dialogue else []
         self.shop_items = shop_items if shop_items else []
+
+        # Optional quest gate.
+        # MapScreen may set this after creating NPC.
+        self.required_quest = None
 
         # State
         self.defeated = False
@@ -57,15 +77,22 @@ class NPC:
         self.sprite_filename = sprite_filename
         self.sprite_sheet = sprite_sheet
 
-        self.sprite_width = 64
-        self.sprite_height = 64
+        self.sprite_width = 84
+        self.sprite_height = 84
 
-        # Sprite is larger than hitbox, so offset it.
-        self.draw_offset_x = -12
-        self.draw_offset_y = -24
+        self.draw_offset_x = -22
+        self.draw_offset_y = -18
 
         # Load sprite
         self.sprite = self._load_sprite()
+
+    def _sync_collision_rect(self):
+        """
+        Keeps the NPC collision box aligned with the anchor rect.
+        Useful if NPC movement is added later.
+        """
+        self.collision_rect.x = self.rect.x + 6
+        self.collision_rect.y = self.rect.y + 18
 
     def _load_sprite(self):
         """
@@ -82,7 +109,7 @@ class NPC:
                 target_height=self.sprite_height
             )
 
-            # Row 0, frame 0 = facing down / idle frame
+            # Row 0, frame 0 = facing down / idle frame.
             return sheet[0][0]
 
         return SpriteManager.get_sprite(
@@ -98,11 +125,16 @@ class NPC:
         This method remains so MapScreen can call npc.update_ai()
         without causing errors.
         """
+        self._sync_collision_rect()
         return
 
     def draw(self, surface, camera=None):
         """
         Draws the NPC.
+
+        Note:
+        MapScreen usually draws NPCs itself because it needs to offset by
+        play_area. This method is still kept for compatibility.
         """
         if self.defeated:
             return

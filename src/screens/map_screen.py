@@ -12,6 +12,7 @@ from src.graphics.camera import Camera
 from src.screens.combat_screen import CombatScreen
 
 from src.ui.theme import UITheme
+from src.ui.fonts import get_font
 from src.ui.widgets import draw_text
 
 
@@ -32,9 +33,9 @@ class MapScreen(BaseScreen):
     def __init__(self, screen_manager, map_id=None):
         super().__init__(screen_manager)
 
-        self.font = pygame.font.SysFont(None, UITheme.HEADER_SIZE)
-        self.small_font = pygame.font.SysFont(None, UITheme.SMALL_SIZE)
-        self.tiny_font = pygame.font.SysFont(None, 20)
+        self.font = get_font(UITheme.HEADER_SIZE)
+        self.small_font = get_font(UITheme.SMALL_SIZE)
+        self.tiny_font = get_font(20)
 
         session = self.screen_manager.game_session
 
@@ -357,12 +358,26 @@ class MapScreen(BaseScreen):
     def _get_active_npc_collision_rects(self):
         """
         Returns collision rectangles for visible NPCs.
+
+        Important:
+        - Player movement checks against Player.collision_rect.
+        - NPC has its own smaller foot hitbox named collision_rect.
+        - Using npc.collision_rect prevents Zac from walking through NPCs
+          without creating a large invisible wall around the full sprite/name.
         """
-        return [
-            npc.rect.copy()
-            for npc in self.npcs
-            if self._is_npc_active(npc)
-        ]
+        rects = []
+
+        for npc in self.npcs:
+            if self._is_npc_active(npc):
+                if hasattr(npc, "_sync_collision_rect"):
+                    npc._sync_collision_rect()
+
+                if hasattr(npc, "collision_rect"):
+                    rects.append(npc.collision_rect.copy())
+                else:
+                    rects.append(npc.rect.copy())
+
+        return rects
 
     def _is_npc_active(self, npc):
         if npc.defeated:

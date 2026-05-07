@@ -4,39 +4,48 @@ from src.graphics.sprite_manager import SpriteManager
 
 class Player:
     """
-    Handles the player's overworld representation, smooth tile movement,
+    Handles the player's overworld representation, smooth movement,
     collision, and walking animation.
 
     Movement style:
-    - One input step = one tile.
+    - One input step = a small step, not a full tile.
     - Movement is smooth, not instant.
-    - Collision box = 1 tile.
+    - Main rect = player anchor position.
+    - collision_rect = smaller foot hitbox for natural collision.
     - Sprite is larger than 1 tile so Zac visually fits with bushes/grass.
     """
 
     def __init__(self, x, y, tile_size=64):
         self.tile_size = tile_size
 
+        # Smaller movement step.
+        # 16px lets Zac move closer to NPCs instead of stopping 1 full tile away.
+        self.step_size = tile_size // 4
+
         # Store position.
         self.x = float(x)
         self.y = float(y)
 
-        # Collision hitbox = full tile size.
+        # Anchor rect.
         self.rect = pygame.Rect(x, y, tile_size, tile_size)
 
+        # Smaller collision box around Zac's feet.
+        self.collision_rect = pygame.Rect(
+            x + 18,
+            y + 42,
+            28,
+            18
+        )
+
         # Sprite display size.
-        # Bigger than one tile so the character looks large enough
-        # compared to bushes / grass.
         self.sprite_width = 112
         self.sprite_height = 112
 
         # Center 112x112 sprite on a 64x64 tile.
-        # X: centered
-        # Y: pushed upward a bit so the feet stay on the tile naturally
         self.draw_offset_x = -24
         self.draw_offset_y = -28
 
-        # Smooth grid movement settings.
+        # Smooth movement settings.
         self.is_moving = False
         self.target_x = self.rect.x
         self.target_y = self.rect.y
@@ -74,12 +83,19 @@ class Player:
 
         self.sprite = self.animations[self.current_dir][self.frame_index]
 
+    def _sync_collision_rect(self):
+        """
+        Keeps Zac's foot collision box aligned with his anchor position.
+        """
+        self.collision_rect.x = self.rect.x + 18
+        self.collision_rect.y = self.rect.y + 42
+
     def handle_movement(self, keys, collision_rects):
         """
-        Handles smooth one-tile movement.
+        Handles smooth small-step movement.
 
         Returns:
-            True only when Zac has just finished moving into a new tile.
+            True only when Zac has just finished moving into a new position.
             False otherwise.
         """
         if self.is_moving:
@@ -89,19 +105,19 @@ class Player:
         dy = 0
 
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-            dx = -self.tile_size
+            dx = -self.step_size
             self.current_dir = self.DIR_LEFT
 
         elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-            dx = self.tile_size
+            dx = self.step_size
             self.current_dir = self.DIR_RIGHT
 
         elif keys[pygame.K_UP] or keys[pygame.K_w]:
-            dy = -self.tile_size
+            dy = -self.step_size
             self.current_dir = self.DIR_UP
 
         elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
-            dy = self.tile_size
+            dy = self.step_size
             self.current_dir = self.DIR_DOWN
 
         else:
@@ -109,16 +125,17 @@ class Player:
             self.sprite = self.animations[self.current_dir][self.frame_index]
             return False
 
-        return self._start_tile_move(dx, dy, collision_rects)
+        return self._start_move(dx, dy, collision_rects)
 
-    def _start_tile_move(self, dx, dy, collision_rects):
+    def _start_move(self, dx, dy, collision_rects):
         """
-        Starts moving toward the next tile if it is not blocked.
+        Starts moving toward the next small step if it is not blocked.
         """
         target_rect = self.rect.move(dx, dy)
+        target_collision_rect = self.collision_rect.move(dx, dy)
 
         for wall in collision_rects:
-            if target_rect.colliderect(wall):
+            if target_collision_rect.colliderect(wall):
                 self.frame_index = 0
                 self.sprite = self.animations[self.current_dir][self.frame_index]
                 return False
@@ -132,7 +149,7 @@ class Player:
 
     def _continue_movement(self):
         """
-        Moves Zac smoothly toward the target tile.
+        Moves Zac smoothly toward the target position.
         """
         if self.rect.x < self.target_x:
             self.rect.x += min(self.move_speed, self.target_x - self.rect.x)
@@ -148,6 +165,7 @@ class Player:
 
         self.x = float(self.rect.x)
         self.y = float(self.rect.y)
+        self._sync_collision_rect()
 
         self._update_animation()
 
@@ -155,6 +173,7 @@ class Player:
             self.is_moving = False
             self.x = float(self.rect.x)
             self.y = float(self.rect.y)
+            self._sync_collision_rect()
             return True
 
         return False

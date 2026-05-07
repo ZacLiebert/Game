@@ -2,6 +2,7 @@ import pygame
 
 from src.screens.base_screen import BaseScreen
 from src.ui.theme import UITheme
+from src.ui.fonts import get_font
 from src.ui.widgets import draw_panel, draw_text
 
 
@@ -22,9 +23,9 @@ class DialogueScreen(BaseScreen):
         self.lines = npc.dialogue if npc.dialogue else ["..."]
         self.current_line = 0
 
-        self.name_font = pygame.font.SysFont(None, UITheme.BODY_SIZE)
-        self.text_font = pygame.font.SysFont(None, UITheme.SMALL_SIZE)
-        self.hint_font = pygame.font.SysFont(None, 22)
+        self.name_font = get_font(UITheme.BODY_SIZE)
+        self.text_font = get_font(UITheme.SMALL_SIZE)
+        self.hint_font = get_font(22)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
