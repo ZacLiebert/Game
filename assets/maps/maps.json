@@ -1,65 +1,182 @@
 {
     "forest_01": {
-        "name": "Whispering Woods",
-        "map_file": "forest_01.txt",
-        "tile_sprites": {
-            ".": "grass.png",
-            "#": "tree.png",
-            "B": "bush.png",
-            "S": "sand.png"
-        },
-        "solid_tiles": ["#"],
+        "name": "Quarantine Woods - Base Camp",
+        "tmx_file": "cc_monsters/data/maps/quarantine_woods.tmx",
+        "start_position": [
+            1728,
+            1280
+        ],
         "npcs": [
             {
-                "name": "Old Biologist",
-                "x": 512,
-                "y": 384,
+                "name": "Dr. Biologist",
+                "x": 1728,
+                "y": 1184,
                 "enemies": [],
-                "sprite": "tanker_battle.png",
+                "sprite": "sprites/npcs/story/dr_biologist.png",
+                "sprite_sheet": true,
+                "sprite_rows": 4,
+                "sprite_cols": 3,
+                "sprite_width": 64,
+                "sprite_height": 64,
                 "type": "dialogue",
                 "dialogue": [
-                    "This island was once peaceful.",
-                    "Then the mutation outbreak began.",
-                    "Collect beast materials, unlock a mutation, then contain the bear.",
-                    "Only a stabilized Zac can face Alpha Chimera."
+                    "You're awake, Zac. Stay calm. This is the Quarantine Woods research zone.",
+                    "A failed experiment released unstable mutation energy through the forest. Most creatures here are no longer natural.",
+                    "Your body is different because the old stabilizer trial left adaptive markers in your cells. The outbreak mutates you, but it does not break you.",
+                    "You can stabilize samples and turn them into controlled abilities. That makes you our best chance, but also our biggest risk if you evolve too fast.",
+                    "Mira is our field healer and support specialist. Kael is the team's frontline defender who can weaken larger mutants.",
+                    "Talk to both of them, visit Quartermaster Rhea, collect samples, and unlock two mutations before you challenge the Mutant Bear."
                 ]
             },
             {
-                "name": "Island Merchant",
-                "x": 704,
-                "y": 384,
+                "name": "Mira",
+                "x": 1536,
+                "y": 1296,
                 "enemies": [],
-                "sprite": "rogue_battle.png",
+                "sprite": "sprites/npcs/story/mira_map.png",
+                "sprite_sheet": false,
+                "sprite_width": 64,
+                "sprite_height": 64,
+                "type": "dialogue",
+                "dialogue": [
+                    "Mira: I'm the field healer attached to this containment team.",
+                    "In battle I can use First Aid to patch up wounded allies and flush poison before it spreads.",
+                    "Your mutations are useful, Zac, but they stress your body. If your HP drops too low, let me stabilize you instead of gambling on one more attack.",
+                    "Use Med Kits before the fight gets out of control, and save Revive Shots for when an ally has already fallen.",
+                    "The forest is adapting. If we keep the team alive, we can push deeper without feeding the outbreak more victims."
+                ]
+            },
+            {
+                "name": "Kael",
+                "x": 1920,
+                "y": 1296,
+                "enemies": [],
+                "sprite": "sprites/npcs/story/kael_map.png",
+                "sprite_sheet": false,
+                "sprite_width": 80,
+                "sprite_height": 80,
+                "type": "dialogue",
+                "dialogue": [
+                    "Kael: I used to guard the lab perimeter before containment failed.",
+                    "Now I take the front line. In battle I can use Shield Bash to lower a mutant's attack or Protective Guard to brace myself.",
+                    "The Bear is not just hunting. It is holding territory, which means something stronger is forcing the animals into zones.",
+                    "Once you're prepared, we'll break through the Mutant Bear's blockade together."
+                ]
+            },
+            {
+                "name": "Quartermaster Rhea",
+                "x": 2080,
+                "y": 1472,
+                "enemies": [],
+                "sprite": "sprites/npcs/story/quartermaster_rhea.png",
+                "sprite_sheet": true,
+                "sprite_rows": 4,
+                "sprite_cols": 3,
+                "sprite_width": 64,
+                "sprite_height": 64,
                 "type": "shop",
                 "shop_items": [
-                    "pot_hp_small"
+                    "pot_hp_small",
+                    "pot_hp_medium",
+                    "pot_hp_large",
+                    "pot_atk_1",
+                    "pot_atk_2",
+                    "pot_spd_1",
+                    "pot_spd_2",
+                    "pot_revive_small",
+                    "pot_revive_large"
                 ],
                 "dialogue": [
-                    "Need supplies? I have a few things for sale."
+                    "Rhea: The doctor sent you? Then you need supplies, not bravery.",
+                    "Med Kits restore HP, Adrenal Serum boosts attack, Sprint Serum boosts speed, and Revive Shots bring a fallen ally back.",
+                    "Buy what you can, then collect samples from wild mutants to unlock your first mutation."
+                ]
+            },
+            {
+                "name": "Sample Herbalist",
+                "x": 1504,
+                "y": 1472,
+                "enemies": [],
+                "sprite": "sprites/npcs/story/sample_herbalist.png",
+                "sprite_sheet": true,
+                "sprite_rows": 4,
+                "sprite_cols": 3,
+                "sprite_width": 64,
+                "sprite_height": 64,
+                "type": "dialogue",
+                "dialogue": [
+                    "Mutation samples are not junk. They are how your body learns to adapt.",
+                    "Field Log 01: bat membranes and snake venom cluster near the colder cave-side paths. Boars and rabbits stay closer to the forest edge.",
+                    "Field Log 02: the Alpha Chimera was not simply created in a tank. It assembled itself from unstable samples after the lab containment roots failed.",
+                    "Open the Mutation Tree after you collect enough materials. Some upgrades require earlier mutations first.",
+                    "Tall grass is dangerous, but it is also the safest place to gather samples before challenging the Mutant Bear."
                 ]
             },
             {
                 "name": "Mutant Bear",
-                "x": 1152,
-                "y": 512,
-                "enemies": ["e_bear", "e_boar", "e_rabbit"],
-                "sprite": "bear.png",
+                "x": 2336,
+                "y": 1120,
+                "enemies": [
+                    "e_bear",
+                    "e_boar",
+                    "e_rabbit"
+                ],
+                "sprite": "sprites/npcs/story/mutant_bear_marker_anim.png",
+                "sprite_sheet": true,
+                "sprite_width": 112,
+                "sprite_height": 112,
                 "type": "boss",
-                "required_quest": "contain_bear"
+                "dialogue": [
+                    "The Mutant Bear slams the ground and blocks the eastern trail.",
+                    "It was once a normal forest bear. The outbreak changed it into a territorial monster guarding the road to the lab.",
+                    "Its bones have overgrown into armor. If you defeat it, the plates may give Zac the material needed for Bone Plating.",
+                    "Defeat it to open the only safe pass toward the containment gate."
+                ],
+                "blocker": true,
+                "battle_required_quest": "contain_bear",
+                "blocker_rect": [
+                    2176,
+                    1088,
+                    384,
+                    144
+                ],
+                "block_message_before_quest": "The Mutant Bear blocks the trail. Gather samples, unlock two mutations, and prepare supplies first.",
+                "sprite_rows": 1,
+                "sprite_cols": 4
             },
             {
                 "name": "Alpha Chimera",
-                "x": 1408,
-                "y": 704,
-                "enemies": ["e_chimera", "e_tiger", "e_snake"],
-                "sprite": "bear.png",
+                "x": 2848,
+                "y": 864,
+                "enemies": [
+                    "e_chimera",
+                    "e_tiger",
+                    "e_snake"
+                ],
+                "sprite": "sprites/npcs/story/alpha_chimera_marker_anim.png",
+                "sprite_sheet": true,
+                "sprite_width": 128,
+                "sprite_height": 128,
                 "type": "final_boss",
-                "required_quest": "final_boss",
                 "dialogue": [
-                    "The outbreak source is here.",
-                    "Defeat Alpha Chimera to end the mutation crisis."
-                ]
+                    "The air twists around the Alpha Chimera. This is not just another mutant.",
+                    "It is the living source of the unstable mutation energy spreading through the woods.",
+                    "Every sample you stabilized was a fragment of its pattern. Now the forest is trying to pull those fragments back together.",
+                    "If it breaks quarantine, the infection will reach the settlements beyond the island. End the outbreak here."
+                ],
+                "blocker": true,
+                "battle_required_quest": "final_boss",
+                "blocker_rect": [
+                    2688,
+                    832,
+                    384,
+                    160
+                ],
+                "block_message_before_quest": "Alpha Chimera guards the lab. Contain the Mutant Bear, then unlock 4 mutations and equip a non-basic skill before approaching.",
+                "sprite_rows": 1,
+                "sprite_cols": 4
             }
-        ]
+        ],
+        "short_name": "Base Camp"
     }
 }

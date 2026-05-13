@@ -72,7 +72,7 @@
     {
         "id": "hardened_body",
         "name": "Hardened Body",
-        "description": "Zac's body begins to toughen, preparing his skin and bones for defensive mutations.",
+        "description": "Zac's body begins to toughen, preparing his skin and bones for defensive mutations. Unlocks Guard Stance.",
         "req_item": "boar_hide",
         "req_count": 1,
         "parent": "base",
@@ -80,12 +80,12 @@
             "hp": 10,
             "defense": 1
         },
-        "unlock_skill": null
+        "unlock_skill": "guard_stance"
     },
     {
         "id": "thick_hide",
         "name": "Thick Hide",
-        "description": "Zac's skin hardens like a wild beast, reducing damage from enemy attacks.",
+        "description": "Zac's skin hardens like a wild beast, reducing damage from enemy attacks. Upgrades Guard Stance into Iron Guard.",
         "req_item": "boar_hide",
         "req_count": 2,
         "parent": "hardened_body",
@@ -93,12 +93,12 @@
             "hp": 20,
             "defense": 1
         },
-        "unlock_skill": null
+        "unlock_skill": "iron_guard"
     },
     {
         "id": "bone_plating",
         "name": "Bone Plating",
-        "description": "Dense bone plates grow over Zac's body, forming a natural biological armor.",
+        "description": "Dense bone plates grow over Zac's body, forming a natural biological armor. Unlocks Counter Shell.",
         "req_item": "bear_bone",
         "req_count": 4,
         "parent": "thick_hide",
@@ -106,7 +106,7 @@
             "hp": 25,
             "defense": 2
         },
-        "unlock_skill": null
+        "unlock_skill": "counter_shell"
     },
 
     {

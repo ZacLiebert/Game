@@ -1,8 +1,10 @@
+"""Main menu screen."""
+
 import pygame
 from src.paths import DEFAULT_SAVE_FILE
 from src.core.game_session import GameSession
 from src.screens.base_screen import BaseScreen
-from src.data_structures.cryptography import SaveEncryption
+from src.core.save_integrity import SaveEncryption
 
 from src.ui.theme import UITheme
 from src.ui.fonts import get_font
@@ -10,18 +12,12 @@ from src.ui.widgets import draw_shadow_panel, draw_button, draw_centered_text
 
 
 class MainMenuScreen(BaseScreen):
-    """
-    The title screen of the game.
-
-    Handles:
-    - Starting a new game
-    - Loading an HMAC-verified save file
-    - Saving the current game session
-    - Quitting the game
-    """
+    """Main menu for starting, loading, and exiting the game."""
 
     def __init__(self, screen_manager):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = "forest"
 
         self.title_font = get_font(UITheme.TITLE_SIZE)
         self.header_font = get_font(UITheme.HEADER_SIZE)
@@ -42,10 +38,7 @@ class MainMenuScreen(BaseScreen):
         self.selected_option = 0
 
     def handle_event(self, event):
-        """
-        Handles menu selection via keyboard.
-        Supports both old hotkeys and UP/DOWN/ENTER navigation.
-        """
+        """Handle the event."""
         if event.type == pygame.KEYDOWN:
 
             # Navigate menu
@@ -53,13 +46,16 @@ class MainMenuScreen(BaseScreen):
                 self.selected_option = (
                     self.selected_option - 1
                 ) % len(self.options)
+                self.play_sfx("click")
 
             elif event.key == pygame.K_DOWN:
                 self.selected_option = (
                     self.selected_option + 1
                 ) % len(self.options)
+                self.play_sfx("click")
 
             elif event.key == pygame.K_RETURN:
+                self.play_sfx("click")
                 selected_action = self.options[self.selected_option]["action"]
                 self._execute_action(selected_action)
 
@@ -76,15 +72,16 @@ class MainMenuScreen(BaseScreen):
             elif event.key == pygame.K_ESCAPE:
                 self._execute_action("quit")
 
+
     def _execute_action(self, action):
-        """
-        Executes the selected menu action.
-        """
+        """Run the selected menu or combat action."""
         if action == "new":
+            self.play_sfx("success")
             self.screen_manager.game_session = GameSession()
 
-            from src.screens.map_screen import MapScreen
-            self.screen_manager.push(MapScreen(self.screen_manager))
+            from src.screens.intro_screen import IntroScreen
+
+            self.screen_manager.push(IntroScreen(self.screen_manager))
 
         elif action == "load":
             self._load_verified_save()
@@ -96,16 +93,16 @@ class MainMenuScreen(BaseScreen):
             pygame.event.post(pygame.event.Event(pygame.QUIT))
 
     def _load_verified_save(self):
-        """
-        Loads a save file only if its HMAC signature is valid.
-        """
+        """Load save data after integrity checking."""
         if not self.save_file_path.exists():
+            self.play_sfx("error")
             self.status_message = "No save file found. Start a New Game first."
             return
 
         save_data = SaveEncryption.load_game(self.save_file_path)
 
         if save_data:
+            self.play_sfx("success")
             print("Save file verified and loaded successfully!")
 
             # Reset session first, then import save data.
@@ -117,12 +114,11 @@ class MainMenuScreen(BaseScreen):
             self.screen_manager.push(MapScreen(self.screen_manager))
 
         else:
+            self.play_sfx("error")
             self.status_message = "ERROR: Save file modified or corrupted!"
 
     def _save_current_game(self):
-        """
-        Saves the current game session with HMAC protection.
-        """
+        """Save the current game session."""
         save_data = self.screen_manager.game_session.export_save_data()
 
         success = SaveEncryption.save_game(
@@ -131,20 +127,18 @@ class MainMenuScreen(BaseScreen):
         )
 
         if success:
+            self.play_sfx("success")
             self.status_message = "Game Session Saved with HMAC!"
         else:
+            self.play_sfx("error")
             self.status_message = "ERROR: Failed to save game!"
 
     def update(self):
-        """
-        Static menu, no update logic needed.
-        """
+        """Update this screen for the current frame."""
         pass
 
     def draw(self, surface):
-        """
-        Renders the title screen UI.
-        """
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
         center_x = screen_w // 2
@@ -244,9 +238,7 @@ class MainMenuScreen(BaseScreen):
         )
 
     def _draw_background_grid(self, surface):
-        """
-        Draws a simple background grid to make the menu feel less empty.
-        """
+        """Draw the animated menu grid."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 

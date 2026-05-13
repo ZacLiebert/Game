@@ -1,0 +1,20 @@
+Map / tileset / object art:
+- Python-Monsters / Clean Code project assets
+- Artwork credited by the original project to Scarloxy / MPWSP01
+- Used here as a custom Quarantine Woods map, not by copying the original world.tmx layout.
+
+Code integration:
+- Uses Tiled TMX map structure and PyTMX loading approach.
+
+Audio:
+- assets/audio/bgm/forest.ogg is a newly generated warm menu loop replacing the previous darker forest ambience.
+- assets/audio/bgm/map_relax.ogg is an original melodic RPG-style overworld loop generated for this project and is used by MapScreen plus map-related overlays.
+- Battle/boss BGM and original success/game-over SFX are restored from the provided project audio assets.
+- Additional click, alert, hit, and error SFX were generated procedurally for this submitted build.
+
+
+NPC / map monster character sprites:
+- 2D Top Down Pixel Art Characters by Jephed / Game Between The Lines
+- Source: https://gamebetweenthelines.com/top-down-pixel-art-characters/
+- Author credit requested by asset ReadMe: Jephed, Game Between The Lines, https://gamebetweenthelines.com/
+- Used for Dr. Biologist, Quartermaster Rhea, Sample Herbalist, Mutant Bear map marker, and Alpha Chimera map marker. Mira and Kael reuse the submitted party battle sprites as small overworld camp NPCs.

@@ -1,8 +1,7 @@
+"""Shared UI constants."""
+
 class UITheme:
-    """
-    Stores shared colors and font sizes for the whole game UI.
-    This helps all screens follow the same visual style.
-    """
+    """Shared colors and font sizes for the UI."""
 
     # Main colors
     BG = (14, 18, 26)
@@ -18,7 +17,7 @@ class UITheme:
     ACCENT_GOLD = (255, 215, 85)
 
     # Text colors
-    # Brighter text fixes the thin / blurry look.
+    # Bright text improves readability.
     TEXT = (248, 250, 255)
     TEXT_DIM = (198, 206, 218)
     TEXT_DARK = (100, 112, 128)

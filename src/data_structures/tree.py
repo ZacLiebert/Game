@@ -1,4 +1,11 @@
+"""Custom mutation tree data structure."""
+
+from src.data_structures.hash_table import HashTable
+
+
 class MutationNode:
+    """Node in the mutation tree."""
+
     def __init__(
         self,
         node_id,
@@ -9,36 +16,24 @@ class MutationNode:
         stats_modifier=None,
         unlock_skill=None
     ):
+        """Set up initial state."""
         self.node_id = node_id
         self.mutation_id = node_id
         self.name = name
         self.description = description
-
         self.required_item_id = required_item_id
         self.required_count = required_count
-
         self.stats_modifier = stats_modifier if stats_modifier else {}
-
-        # Skill unlocked by this mutation.
-        # Example:
-        # echolocation -> sonic_pulse
-        # venom_fang -> venom_bite
-        # swift_legs -> beast_focus
         self.unlock_skill = unlock_skill
-
         self.is_unlocked = False
         self.children = []
 
     def add_child(self, child_node):
-        """
-        Adds a child mutation node to this node.
-        """
+        """Attach a child mutation node."""
         self.children.append(child_node)
 
     def can_unlock(self, inventory_manager):
-        """
-        Checks whether this mutation can be unlocked based on inventory quantity.
-        """
+        """Return whether this mutation can be unlocked."""
         if self.is_unlocked:
             return False, "Already unlocked."
 
@@ -55,144 +50,214 @@ class MutationNode:
 
 
 class MutationTree:
-    """
-    Tree data structure managing the evolution diagram and unlock constraints.
-    """
+    """Custom tree for mutation unlock paths."""
 
     def __init__(self, root_node):
+        """Set up initial state."""
+        if root_node is None:
+            raise ValueError("MutationTree requires a root node.")
+
         self.root = root_node
+        validation_errors = self.validate_structure()
+
+        if validation_errors:
+            raise ValueError(
+                "Invalid mutation tree structure:\n- "
+                + "\n- ".join(validation_errors)
+            )
+
         self.root.is_unlocked = True
+        self.node_index = HashTable(capacity=32)
+        self.parent_index = HashTable(capacity=32)
+        self._rebuild_indexes()
 
-    def find_node(self, current_node, mutation_id):
-        """
-        Recursively searches the tree to find a specific mutation by ID.
-        """
-        if current_node.mutation_id == mutation_id:
-            return current_node
+    def validate_structure(self):
+        """Validate parent links and tree structure."""
+        errors = []
+        visiting = HashTable(capacity=32)
+        visited = HashTable(capacity=32)
+        stack = [(self.root, None, "enter")]
 
-        for child in current_node.children:
-            result = self.find_node(child, mutation_id)
+        while stack:
+            node, parent, state = stack.pop()
 
-            if result:
-                return result
+            if node is None:
+                errors.append("None node found in mutation tree.")
+                continue
+
+            node_id = getattr(node, "node_id", None)
+
+            if not node_id:
+                errors.append("Mutation node has empty id.")
+                continue
+
+            if state == "exit":
+                visiting.delete(node_id)
+                visited.insert(node_id, True)
+                continue
+
+            if visiting.contains(node_id):
+                errors.append(f"Cycle detected at mutation id '{node_id}'.")
+                continue
+
+            if visited.contains(node_id):
+                errors.append(f"Duplicate/shared mutation id '{node_id}' found.")
+                continue
+
+            visiting.insert(node_id, True)
+            stack.append((node, parent, "exit"))
+
+            for child in reversed(node.children):
+                if child is node:
+                    errors.append(f"Mutation '{node_id}' cannot be its own child.")
+                    continue
+
+                stack.append((child, node, "enter"))
+
+        return errors
+
+    def _rebuild_indexes(self):
+        """Refresh lookup tables for the tree."""
+        self.node_index = HashTable(capacity=32)
+        self.parent_index = HashTable(capacity=32)
+
+        stack = [(self.root, None)]
+
+        while stack:
+            node, parent = stack.pop()
+            self.node_index.insert(node.node_id, node)
+            self.parent_index.insert(node.node_id, parent)
+
+            for child in reversed(node.children):
+                stack.append((child, node))
+
+    def find_node(self, current_node_or_id, mutation_id=None):
+        """Return a mutation node by ID."""
+        lookup_id = mutation_id if mutation_id is not None else current_node_or_id
+        return self.node_index.get(lookup_id)
+
+    def find_node_dfs(self, mutation_id):
+        """Find a mutation node using DFS."""
+        stack = [self.root]
+
+        while stack:
+            node = stack.pop()
+
+            if node.node_id == mutation_id:
+                return node
+
+            for child in reversed(node.children):
+                stack.append(child)
 
         return None
 
     def add_mutation(self, parent_id, new_node):
-        """
-        Inserts a new mutation into the tree under a specific parent node.
-        """
-        parent_node = self.find_node(self.root, parent_id)
+        """Add a mutation node under its parent."""
+        parent_node = self.find_node(parent_id)
 
-        if parent_node:
-            parent_node.add_child(new_node)
-            return True
+        if not parent_node or new_node is None:
+            return False
 
-        return False
+        if not getattr(new_node, "node_id", None):
+            return False
+
+        if parent_id == new_node.node_id or self.node_index.contains(new_node.node_id):
+            return False
+
+        parent_node.add_child(new_node)
+
+        validation_errors = self.validate_structure()
+        if validation_errors:
+            parent_node.children.pop()
+            return False
+
+        self.node_index.insert(new_node.node_id, new_node)
+        self.parent_index.insert(new_node.node_id, parent_node)
+        return True
 
     def find_parent(self, child_id, current_node=None):
-        """
-        Recursively searches the N-ary tree to find the parent of a specific node.
-        """
-        if current_node is None:
-            current_node = self.root
+        """Return the parent of a mutation node."""
+        return self.parent_index.get(child_id)
 
-        for child in current_node.children:
-            if child.node_id == child_id:
-                return current_node
+    def find_parent_dfs(self, child_id):
+        """Find a parent node using DFS."""
+        stack = [(self.root, None)]
 
-            found_parent = self.find_parent(child_id, child)
+        while stack:
+            node, parent = stack.pop()
 
-            if found_parent:
-                return found_parent
+            if node.node_id == child_id:
+                return parent
+
+            for child in reversed(node.children):
+                stack.append((child, node))
 
         return None
 
     def can_unlock(self, mutation_id):
-        """
-        Validates tree constraints only.
-        Inventory cost is checked inside MutationNode.can_unlock().
-        """
-        target_node = self.find_node(self.root, mutation_id)
+        """Return whether a mutation can be unlocked."""
+        target_node = self.find_node(mutation_id)
+
+        if not target_node or target_node.is_unlocked:
+            return False
+
         parent_node = self.find_parent(mutation_id)
-
-        if not target_node:
-            return False
-
-        if target_node.is_unlocked:
-            return False
-
-        if parent_node and parent_node.is_unlocked:
-            return True
-
-        return False
+        return parent_node is not None and parent_node.is_unlocked
 
     def unlock_mutation(self, mutation_id):
-        """
-        Attempts to unlock the specified mutation if tree constraints are met.
-        """
-        if self.can_unlock(mutation_id):
-            node = self.find_node(self.root, mutation_id)
+        """Unlock a mutation if all requirements are met."""
+        node = self.find_node(mutation_id)
+
+        if node and self.can_unlock(mutation_id):
             node.is_unlocked = True
             return True
 
         return False
 
     def get_unlocked_nodes(self, current_node=None):
-        """
-        Recursively collects a list of all unlocked mutation IDs.
-        """
-        if current_node is None:
-            current_node = self.root
-
+        """Return all unlocked mutation nodes."""
+        start_node = current_node if current_node is not None else self.root
         unlocked = []
+        stack = [start_node]
 
-        if current_node.is_unlocked:
-            unlocked.append(current_node.node_id)
+        while stack:
+            node = stack.pop()
 
-        for child in current_node.children:
-            unlocked.extend(self.get_unlocked_nodes(child))
+            if node.is_unlocked:
+                unlocked.append(node.node_id)
+
+            for child in reversed(node.children):
+                stack.append(child)
 
         return unlocked
 
-    # ============================================================
-    # SAFE SAVE RESTORE HELPERS
-    # ============================================================
+    # Safe save restore helpers
 
     def reset_unlocks(self, current_node=None):
-        """
-        Resets the whole mutation tree before loading a save.
+        """Lock every non-root mutation."""
+        start_node = current_node if current_node is not None else self.root
+        stack = [start_node]
 
-        Important:
-        - Root stays unlocked.
-        - Every other node becomes locked.
-        - This prevents old unlocked mutations from remaining active after
-          loading an older save.
-        """
-        if current_node is None:
-            current_node = self.root
+        while stack:
+            node = stack.pop()
+            node.is_unlocked = node is self.root
 
-        current_node.is_unlocked = current_node is self.root
-
-        for child in current_node.children:
-            self.reset_unlocks(child)
+            for child in node.children:
+                stack.append(child)
 
     def _lock_subtree(self, current_node):
-        """
-        Locks a node and all of its children.
-        """
-        current_node.is_unlocked = False
+        """Lock a mutation and all of its children."""
+        stack = [current_node]
 
-        for child in current_node.children:
-            self._lock_subtree(child)
+        while stack:
+            node = stack.pop()
+            node.is_unlocked = False
+
+            for child in node.children:
+                stack.append(child)
 
     def _restore_valid_unlock_chain(self, current_node, unlocked_ids):
-        """
-        Restores unlocked nodes only when their parent is already unlocked.
-
-        This prevents edited save files from unlocking deep mutations directly
-        without unlocking their required parent mutations first.
-        """
+        """Restore one saved mutation only if its parent chain is valid."""
         for child in current_node.children:
             if child.node_id in unlocked_ids and current_node.is_unlocked:
                 child.is_unlocked = True
@@ -201,20 +266,8 @@ class MutationTree:
                 self._lock_subtree(child)
 
     def restore_unlocked_nodes(self, unlocked_ids, current_node=None):
-        """
-        Restores the unlocked state from a loaded save file.
-
-        Backward compatible:
-        - The current_node parameter is kept so old calls do not crash.
-        - Normal usage should call restore_unlocked_nodes(unlocked_ids).
-
-        Safer behavior:
-        - Reset tree first.
-        - Keep root unlocked.
-        - Only unlock valid parent-child chains.
-        """
+        """Restore unlocked mutations from save data."""
         if current_node is not None:
-            # Legacy recursive behavior support.
             if current_node.node_id in unlocked_ids:
                 current_node.is_unlocked = True
 
@@ -233,5 +286,4 @@ class MutationTree:
 
         self.reset_unlocks()
         self.root.is_unlocked = True
-
         self._restore_valid_unlock_chain(self.root, unlocked_ids)

@@ -1,3 +1,5 @@
+"""Shared runtime state and save/load helpers."""
+
 from src.core.database import GameDatabase
 from src.core.inventory_manager import InventoryManager
 from src.core.quest_manager import QuestManager
@@ -6,68 +8,70 @@ from src.paths import MUTATIONS_DATA_FILE
 
 
 class GameSession:
-    """
-    Holds all global persistent data:
-    - Player Party
-    - Inventory
-    - Gold
-    - Mutation Tree
-    - Combat Skill Loadout
-    """
+    """Stores shared player, inventory, quest, map, and save data."""
 
     MAX_GOLD = 999999
     MAX_INVENTORY_ITEMS = 200
 
     def __init__(self):
+        """Set up initial state."""
         self.db = GameDatabase()
         self.inventory = InventoryManager()
 
-        # Player money for shop system.
+        # Player gold used by shops.
         self.gold = 100
         self.current_map_id = "forest_01"
         self.player_position = (128, 128)
         self.defeated_npcs = set()
         self.quest_manager = QuestManager()
 
-        # 1. Load Party from JSON via Hash Table
+        # Load the starting party.
         self.party = [
             self.db.create_entity("p1", is_enemy=False),
             self.db.create_entity("p2", is_enemy=False),
             self.db.create_entity("p3", is_enemy=False)
         ]
 
-        # Remove any missing party members safely.
+        # Ignore missing party members.
         self.party = [member for member in self.party if member is not None]
 
-        # 2. Give starting items
-        potion = self.db.get_item("pot_hp_small")
+        # Give starting items.
+        # Starting items make inventory useful early.
+        starting_items = [
+            ("pot_hp_small", 2),
+            ("pot_hp_medium", 1),
+            ("pot_atk_1", 1),
+            ("pot_spd_1", 1),
+            ("pot_revive_small", 1)
+        ]
 
-        if potion:
-            self.inventory.add_item(potion)
-            self.inventory.add_item(self.db.get_item("pot_hp_small"))
+        for item_id, amount in starting_items:
+            item = self.db.get_item(item_id)
 
-        # 3. Load Mutation Tree directly from JSON
+            if item:
+                self.inventory.add_item_amount(item, amount)
+
+        # Load the mutation tree.
         self.mutation_tree = self.db.load_mutation_tree()
 
         if not self.mutation_tree:
             print(f"CRITICAL: {MUTATIONS_DATA_FILE} not found or tree failed to build!")
 
-        # 4. Skill Loadout
+        self.quest_manager.set_mutation_progress_provider(
+            self.get_unlocked_mutation_ids
+        )
+
+        # Set up the skill loadout.
         self.skill_loadout = ["basic_attack"]
         self.skill_loadout = SkillLibrary.sanitize_loadout(
             self.skill_loadout,
             self.mutation_tree
         )
 
-    # ============================================================
-    # SAFE LOAD HELPERS
-    # ============================================================
+    # Safe load helpers
 
     def _safe_int(self, value, default, min_value=None, max_value=None):
-        """
-        Converts a value to int safely and clamps it to a valid range.
-        This prevents edited/corrupted save files from breaking the game.
-        """
+        """Convert a value to a clamped safe integer."""
         try:
             result = int(value)
         except (TypeError, ValueError):
@@ -82,9 +86,7 @@ class GameSession:
         return result
 
     def _safe_position(self, value, default):
-        """
-        Safely restores a 2D player position from save data.
-        """
+        """Restore a valid two-number map position."""
         if not isinstance(value, (list, tuple)) or len(value) != 2:
             return default
 
@@ -94,10 +96,7 @@ class GameSession:
         return (x, y)
 
     def _reset_temporary_party_effects(self):
-        """
-        Removes temporary combat-only effects after loading.
-        Save files should not restore poison/paralysis/stat stages.
-        """
+        """Clear combat-only status and stat changes."""
         for member in self.party:
             if hasattr(member, "status_effects"):
                 member.status_effects = []
@@ -105,21 +104,25 @@ class GameSession:
             if hasattr(member, "reset_stat_stages"):
                 member.reset_stat_stages()
 
-    # ============================================================
-    # SAVE / LOAD
-    # ============================================================
+    def get_unlocked_mutation_ids(self):
+        """Return the unlocked mutation ids."""
+        if not self.mutation_tree:
+            return []
+
+        return self.mutation_tree.get_unlocked_nodes()
+
+    def sync_mutation_quest_progress(self):
+        """Update the mutation quest from unlocked mutations."""
+        return self.quest_manager.sync_active_mutation_progress(
+            self.get_unlocked_mutation_ids()
+        )
+
+    # Save / load
 
     def export_save_data(self):
-        """
-        Packages the current global state into a dictionary for encryption.
-
-        Important:
-        - Save max_hp too, otherwise mutations that increase HP can break
-          after loading.
-        - Save base stats instead of temporary effective stats.
-        """
+        """Return save-ready game data."""
         return {
-            "schema_version": 2,
+            "schema_version": 3,
 
             "gold": self.gold,
             "current_map_id": self.current_map_id,
@@ -138,32 +141,23 @@ class GameSession:
                 } for p in self.party
             ],
 
-            # Extract just the string IDs from the Item objects.
-            "inventory": [item.item_id for item in self.inventory.items],
+            # Save one count per item ID.
+            "inventory_counts": self.inventory.export_counts(),
 
-            # Save unlocked mutation IDs.
+            # Save unlocked mutations.
             "mutations": self.mutation_tree.get_unlocked_nodes()
             if self.mutation_tree else [],
 
-            # Save selected combat skills.
+            # Save equipped skills.
             "skill_loadout": self.skill_loadout
         }
 
     def import_save_data(self, save_dict):
-        """
-        Restores global state from a decrypted dictionary.
-
-        This version validates data before applying it.
-        That prevents corrupted or edited save files from causing:
-        - negative gold
-        - impossible HP/stat values
-        - huge inventory memory usage
-        - invalid mutation unlock chains
-        """
+        """Restore game data from a loaded save."""
         if not isinstance(save_dict, dict):
             return
 
-        # Restore gold safely.
+        # Restore gold.
         self.gold = self._safe_int(
             save_dict.get("gold", self.gold),
             self.gold,
@@ -171,19 +165,19 @@ class GameSession:
             max_value=self.MAX_GOLD
         )
 
-        # Restore map only if the map exists in database.
+        # Restore only a known map.
         saved_map_id = save_dict.get("current_map_id", self.current_map_id)
 
         if isinstance(saved_map_id, str) and self.db.get_map_data(saved_map_id):
             self.current_map_id = saved_map_id
 
-        # Restore player position safely.
+        # Restore player position.
         self.player_position = self._safe_position(
             save_dict.get("player_position"),
             self.player_position
         )
 
-        # Restore defeated NPC names safely.
+        # Restore defeated NPCs.
         defeated = save_dict.get("defeated_npcs", [])
 
         if isinstance(defeated, list):
@@ -192,11 +186,11 @@ class GameSession:
                 if isinstance(name, str)
             }
 
-        # Restore quests safely through QuestManager.
+        # Restore quest progress.
         if "quests" in save_dict:
             self.quest_manager.import_state(save_dict.get("quests"))
 
-        # Restore party stats.
+        # Restore party data.
         saved_party = save_dict.get("party", [])
 
         if isinstance(saved_party, list):
@@ -213,7 +207,7 @@ class GameSession:
                 saved_id = p_data.get("id")
                 member = party_by_id.get(saved_id)
 
-                # Backward compatibility for old saves without reliable IDs.
+                # Support older save files.
                 if member is None and index < len(self.party):
                     member = self.party[index]
 
@@ -257,20 +251,56 @@ class GameSession:
 
         self._reset_temporary_party_effects()
 
-        # Restore Inventory via Hash Table Lookups.
-        self.inventory.items = []
+        # Restore inventory from item IDs.
+        # Preferred schema v3 format: compressed counts.
+        # Backward compatible schema v2 format: list of duplicate item IDs.
+        self.inventory.clear()
 
-        saved_inventory = save_dict.get("inventory", [])
+        saved_inventory_counts = save_dict.get("inventory_counts")
+        restored_total = 0
 
-        if isinstance(saved_inventory, list):
-            for item_id in saved_inventory[:self.MAX_INVENTORY_ITEMS]:
+        if isinstance(saved_inventory_counts, list):
+            for entry in saved_inventory_counts:
+                if not isinstance(entry, dict):
+                    continue
+
+                item_id = entry.get("id")
+
                 if not isinstance(item_id, str):
+                    continue
+
+                remaining_space = self.MAX_INVENTORY_ITEMS - restored_total
+
+                if remaining_space <= 0:
+                    break
+
+                amount = self._safe_int(
+                    entry.get("count", 0),
+                    0,
+                    min_value=0,
+                    max_value=remaining_space
+                )
+
+                if amount <= 0:
                     continue
 
                 item_obj = self.db.get_item(item_id)
 
                 if item_obj:
-                    self.inventory.add_item(item_obj)
+                    self.inventory.add_item_amount(item_obj, amount)
+                    restored_total += amount
+        else:
+            saved_inventory = save_dict.get("inventory", [])
+
+            if isinstance(saved_inventory, list):
+                for item_id in saved_inventory[:self.MAX_INVENTORY_ITEMS]:
+                    if not isinstance(item_id, str):
+                        continue
+
+                    item_obj = self.db.get_item(item_id)
+
+                    if item_obj:
+                        self.inventory.add_item(item_obj)
 
         # Restore Mutation Tree.
         # MutationTree.restore_unlocked_nodes() now resets old unlocks first
@@ -282,6 +312,8 @@ class GameSession:
                 self.mutation_tree.restore_unlocked_nodes(saved_mutations)
             else:
                 self.mutation_tree.restore_unlocked_nodes([])
+
+        self.sync_mutation_quest_progress()
 
         # Restore Skill Loadout.
         saved_loadout = save_dict.get(
@@ -302,11 +334,10 @@ class GameSession:
             self.mutation_tree
         )
 
-    # ============================================================
     # MAP / STORY HELPERS
-    # ============================================================
 
     def remember_map_position(self, map_id, player_rect):
+        """Save the current map position for later loading."""
         self.current_map_id = map_id
         self.player_position = (
             int(player_rect.x),
@@ -314,10 +345,13 @@ class GameSession:
         )
 
     def mark_npc_defeated(self, npc_name):
+        """Remember that an NPC has already been defeated."""
         self.defeated_npcs.add(npc_name)
 
     def is_npc_defeated(self, npc_name):
+        """Return whether is npc defeated is true."""
         return npc_name in self.defeated_npcs
 
     def is_story_complete(self):
+        """Return whether is story complete is true."""
         return self.quest_manager.is_story_complete()

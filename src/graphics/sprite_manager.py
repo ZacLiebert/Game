@@ -1,21 +1,18 @@
+"""Sprite loading and caching."""
+
 import pygame
 
 from src.paths import resolve_asset_path
 
 
 class SpriteManager:
-    """
-    A globally accessible image cacher.
-    Ensures images are only loaded from disk once to optimize memory and speed.
-    """
+    """Loads and caches sprites used by screens."""
 
     _cache = {}
 
     @classmethod
     def get_sprite(cls, filename, width=40, height=40):
-        """
-        Loads and caches a single sprite image.
-        """
+        """Load and cache one sprite image."""
         cache_key = f"{filename}_{width}x{height}"
 
         if cache_key not in cls._cache:
@@ -41,10 +38,7 @@ class SpriteManager:
         target_width=40,
         target_height=40
     ):
-        """
-        Slices a sprite sheet into a 2D list of frames [row][col].
-        Supports different sheet sizes and different target frame sizes.
-        """
+        """Load and slice a sprite sheet."""
         cache_key = (
             f"{filename}_sheet_"
             f"{rows}x{cols}_"

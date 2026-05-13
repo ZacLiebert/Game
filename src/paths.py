@@ -1,19 +1,28 @@
+"""Shared project paths."""
+
+import sys
 from pathlib import Path
 
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+if getattr(sys, "frozen", False):
+    ROOT_DIR = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
+    RUNTIME_DIR = Path(sys.executable).resolve().parent
+else:
+    ROOT_DIR = Path(__file__).resolve().parent.parent
+    RUNTIME_DIR = ROOT_DIR
 
 ASSETS_DIR = ROOT_DIR / "assets"
 DATA_DIR = ROOT_DIR / "data"
-SAVE_DIR = ROOT_DIR / "save_data"
+SAVE_DIR = RUNTIME_DIR / "save_data"
 
 MAPS_DIR = ASSETS_DIR / "maps"
 SPRITES_DIR = ASSETS_DIR / "sprites"
 BACKGROUNDS_DIR = ASSETS_DIR / "backgrounds"
-RAW_ASSETS_DIR = ASSETS_DIR / "raw"
+AUDIO_DIR = ASSETS_DIR / "audio"
+BGM_DIR = AUDIO_DIR / "bgm"
+SFX_DIR = AUDIO_DIR / "sfx"
 
 MAP_DATA_FILE = MAPS_DIR / "maps.json"
-LEGACY_MAP_DATA_FILE = ASSETS_DIR / "maps.json"
 DEFAULT_SAVE_FILE = SAVE_DIR / "save1.dat"
 
 ITEMS_DATA_FILE = DATA_DIR / "items.json"
@@ -28,15 +37,11 @@ ASSET_SEARCH_DIRS = (
     SPRITES_DIR,
     SPRITES_DIR / "characters",
     SPRITES_DIR / "enemies",
-    SPRITES_DIR / "tiles",
-    RAW_ASSETS_DIR,
 )
 
 
 def resolve_asset_path(filename, search_dirs=None):
-    """
-    Finds an asset by filename while allowing assets to live in clean subfolders.
-    """
+    """Return the best existing path for an asset."""
     asset_path = Path(filename)
 
     if asset_path.is_absolute():
@@ -55,13 +60,3 @@ def resolve_asset_path(filename, search_dirs=None):
             return candidate
 
     return candidates[0]
-
-
-def resolve_map_path(filename):
-    return resolve_asset_path(
-        filename,
-        search_dirs=(
-            MAPS_DIR,
-            ASSETS_DIR,
-        )
-    )

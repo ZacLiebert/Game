@@ -1,3 +1,5 @@
+"""Ending screen."""
+
 import pygame
 
 from src.screens.base_screen import BaseScreen
@@ -7,12 +9,13 @@ from src.ui.widgets import draw_button, draw_centered_text, draw_panel
 
 
 class EndingScreen(BaseScreen):
-    """
-    Victory screen shown after the final story boss is defeated.
-    """
+    """Final story screen shown after the last quest."""
 
     def __init__(self, screen_manager):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = "forest"
+        self.play_sfx("success")
 
         self.title_font = get_font(78)
         self.header_font = get_font(UITheme.HEADER_SIZE)
@@ -20,15 +23,19 @@ class EndingScreen(BaseScreen):
         self.small_font = get_font(UITheme.SMALL_SIZE)
 
     def handle_event(self, event):
+        """Handle the event."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_RETURN or event.key == pygame.K_ESCAPE:
+                self.play_sfx("click")
                 while self.screen_manager.size() > 1:
                     self.screen_manager.pop()
 
     def update(self):
+        """Update this screen for the current frame."""
         pass
 
     def draw(self, surface):
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
         center_x = screen_w // 2
@@ -95,6 +102,7 @@ class EndingScreen(BaseScreen):
         )
 
     def _draw_background(self, surface):
+        """Draw the background."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 

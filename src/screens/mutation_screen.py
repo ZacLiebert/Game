@@ -1,6 +1,9 @@
+"""Mutation tree screen."""
+
 import pygame
 
 from src.screens.base_screen import BaseScreen
+from src.core.skill_library import SkillLibrary
 from src.ui.theme import UITheme
 from src.ui.widgets import draw_panel, draw_text, draw_button
 
@@ -8,27 +11,20 @@ try:
     from src.ui.fonts import get_font
 except ImportError:
     def get_font(size, bold=False, italic=False):
+        """Return the font."""
         return pygame.font.SysFont(None, size, bold=bold, italic=italic)
 
 
 class MutationScreen(BaseScreen):
-    """
-    Mutation UI screen.
-    Uses the Mutation Tree to display and unlock biological evolutions.
-
-    Fixed:
-    - Header title and controls no longer overlap.
-    - Mutation tree is drawn as connected nodes instead of a flat list.
-    - Details panel reserves bottom area for Zac status and button.
-    - Long text is clamped / shortened to avoid overlap.
-    - Supports mouse click on mutation nodes.
-    """
+    """Mutation tree screen for viewing and unlocking upgrades."""
 
     NODE_WIDTH = 132
     NODE_HEIGHT = 48
 
     def __init__(self, screen_manager):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = "map"
 
         self.title_font = get_font(UITheme.HEADER_SIZE, bold=True)
         self.font = get_font(UITheme.BODY_SIZE, bold=True)
@@ -49,12 +45,11 @@ class MutationScreen(BaseScreen):
             self._refresh_node_list()
 
     def _refresh_node_list(self):
-        """
-        Flattens the mutation tree into a list for keyboard navigation.
-        """
+        """Refresh the flat mutation list for keyboard navigation."""
         self.nodes_list = []
 
         def traverse(node, depth):
+            """Walk through the mutation tree in order."""
             self.nodes_list.append({
                 "node": node,
                 "depth": depth
@@ -69,23 +64,28 @@ class MutationScreen(BaseScreen):
             self.selected_index = max(0, len(self.nodes_list) - 1)
 
     def handle_event(self, event):
+        """Handle the event."""
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = event.pos
 
             for rect, index in self.node_click_rects:
                 if rect.collidepoint(mouse_pos):
+                    self.play_sfx("click")
                     self.selected_index = index
                     return
 
         if event.type == pygame.KEYDOWN:
 
             if event.key == pygame.K_ESCAPE:
+                self.play_sfx("click")
                 self.screen_manager.pop()
 
             elif event.key == pygame.K_UP:
+                self.play_sfx("click")
                 self.selected_index = max(0, self.selected_index - 1)
 
             elif event.key == pygame.K_DOWN:
+                self.play_sfx("click")
                 if self.nodes_list:
                     self.selected_index = min(
                         len(self.nodes_list) - 1,
@@ -96,20 +96,9 @@ class MutationScreen(BaseScreen):
                 self._attempt_unlock()
 
     def _attempt_unlock(self):
-        """
-        Attempts to unlock the selected mutation.
-
-        Checks:
-        - Already unlocked
-        - Parent unlocked
-        - Enough required material count
-
-        Then:
-        - Consumes required materials
-        - Unlocks node
-        - Applies stat bonus
-        """
+        """Try to unlock the selected mutation."""
         if not self.tree or not self.nodes_list:
+            self.play_sfx("error")
             self.status_msg = "Mutation Tree is not available."
             return
 
@@ -118,18 +107,21 @@ class MutationScreen(BaseScreen):
         inventory = self.session.inventory
 
         if node.is_unlocked:
+            self.play_sfx("error")
             self.status_msg = f"{node.name} is already active."
             return
 
         parent = self.tree.find_parent(node.node_id)
 
         if parent and not parent.is_unlocked:
+            self.play_sfx("error")
             self.status_msg = f"Locked. Unlock {parent.name} first."
             return
 
         can_afford, msg = node.can_unlock(inventory)
 
         if not can_afford:
+            self.play_sfx("error")
             self.status_msg = f"Cannot evolve: {msg}"
             return
 
@@ -140,6 +132,7 @@ class MutationScreen(BaseScreen):
             )
 
             if not removed:
+                self.play_sfx("error")
                 self.status_msg = "Cannot evolve: material count changed."
                 return
 
@@ -147,22 +140,45 @@ class MutationScreen(BaseScreen):
         self._apply_stat_modifier(node)
         self.session.quest_manager.record_mutation(node.node_id)
 
+        old_loadout = list(self.session.skill_loadout)
+        self.session.skill_loadout = SkillLibrary.auto_equip_new_skills(
+            self.session.skill_loadout,
+            self.session.mutation_tree
+        )
+
         skill_name = self._get_skill_display_name(
             getattr(node, "unlock_skill", None)
         )
+        equipped_names = [
+            SkillLibrary.get_skill_name(skill_id)
+            for skill_id in self.session.skill_loadout
+            if skill_id not in old_loadout
+        ]
+
+        self.play_sfx("success")
 
         if skill_name:
-            self.status_msg = (
-                f"Evolution success: {node.name} unlocked! "
-                f"Skill gained: {skill_name}"
-            )
+            if equipped_names:
+                self.status_msg = (
+                    f"Evolution success: {node.name} unlocked! "
+                    f"Skill gained and equipped: {skill_name}"
+                )
+            else:
+                self.status_msg = (
+                    f"Evolution success: {node.name} unlocked! "
+                    f"Skill gained: {skill_name}. Press K to manage loadout."
+                )
         else:
-            self.status_msg = f"Evolution success: {node.name} unlocked!"
+            if equipped_names:
+                self.status_msg = (
+                    f"Evolution success: {node.name} unlocked! "
+                    f"Auto-equipped: {', '.join(equipped_names)}"
+                )
+            else:
+                self.status_msg = f"Evolution success: {node.name} unlocked!"
 
     def _apply_stat_modifier(self, node):
-        """
-        Applies mutation stat bonuses to Zac.
-        """
+        """Apply stat modifier."""
         stats_modifier = getattr(node, "stats_modifier", {})
 
         if not stats_modifier:
@@ -179,9 +195,11 @@ class MutationScreen(BaseScreen):
             zac.current_hp += stats_modifier["hp"]
 
     def update(self):
+        """Update this screen for the current frame."""
         pass
 
     def draw(self, surface):
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 
@@ -269,17 +287,10 @@ class MutationScreen(BaseScreen):
             screen_h - 35
         )
 
-    # ============================================================
-    # HEADER
-    # ============================================================
+    # Header
 
     def _draw_header(self, surface, header_rect):
-        """
-        Draws title and control hint on separate lines.
-
-        This fixes the overlap caused by drawing the hint at a fixed x position
-        while the title uses a large / thick font.
-        """
+        """Draw the screen header."""
         title_text = "BIOLOGICAL MUTATION CHAMBER"
         hint_text = "UP/DOWN: Select   ENTER/E: Evolve   ESC: Back"
 
@@ -318,11 +329,10 @@ class MutationScreen(BaseScreen):
             )
         )
 
-    # ============================================================
-    # MUTATION TREE GRAPH
-    # ============================================================
+    # Mutation tree graph
 
     def _draw_tree_graph(self, surface, panel_rect):
+        """Draw the mutation tree graph."""
         if not self.nodes_list or not self.tree or not self.tree.root:
             draw_text(
                 surface,
@@ -473,13 +483,7 @@ class MutationScreen(BaseScreen):
         )
 
     def _build_tree_layout(self, panel_rect):
-        """
-        Calculates graph positions for each mutation node.
-
-        X position depends on depth.
-        Y position depends on subtree leaf placement so parent nodes sit roughly
-        between their children.
-        """
+        """Calculate node positions for the mutation tree."""
         layout = {}
 
         top_y = panel_rect.y + 92
@@ -497,6 +501,7 @@ class MutationScreen(BaseScreen):
         next_leaf_y = top_y + y_gap / 2
 
         def place_node(node, depth):
+            """Place one mutation node in the tree layout."""
             nonlocal next_leaf_y
 
             x = int(left_x + depth * x_gap)
@@ -523,6 +528,7 @@ class MutationScreen(BaseScreen):
         return layout
 
     def _draw_tree_connections(self, surface, node, layout):
+        """Draw lines between mutation nodes."""
         parent_center = layout[node.node_id]
 
         parent_rect = pygame.Rect(
@@ -580,6 +586,7 @@ class MutationScreen(BaseScreen):
             self._draw_tree_connections(surface, child, layout)
 
     def _count_leaf_nodes(self, node):
+        """Count leaf nodes under a mutation node."""
         if not node.children:
             return 1
 
@@ -591,6 +598,7 @@ class MutationScreen(BaseScreen):
         return total
 
     def _get_max_depth(self, node, current_depth=0):
+        """Return the deepest mutation-tree level."""
         if not node.children:
             return current_depth
 
@@ -600,6 +608,7 @@ class MutationScreen(BaseScreen):
         )
 
     def _get_tree_node_subtext(self, node):
+        """Return short status text for a mutation node."""
         if node.required_item_id is None:
             return "Free"
 
@@ -616,11 +625,10 @@ class MutationScreen(BaseScreen):
 
         return f"{short_name} {owned}/{needed}"
 
-    # ============================================================
-    # DETAILS PANEL
-    # ============================================================
+    # Details panel
 
     def _draw_selected_details(self, surface, panel_rect):
+        """Draw details for the selected mutation."""
         if not self.nodes_list:
             return
 
@@ -817,10 +825,7 @@ class MutationScreen(BaseScreen):
         max_width,
         max_bottom
     ):
-        """
-        Draws one detail section only if it fits above the fixed bottom area.
-        This prevents text from overlapping Zac stats and the evolve button.
-        """
+        """Draw one titled detail section."""
         title_height = 24
         gap_after_title = 22
         gap_after_value = 14
@@ -856,14 +861,10 @@ class MutationScreen(BaseScreen):
 
         return y
 
-    # ============================================================
-    # TEXT / DATA HELPERS
-    # ============================================================
+    # Text and data helpers
 
     def _get_requirement_detail(self, node):
-        """
-        Detailed requirement text for selected mutation.
-        """
+        """Return readable unlock requirements."""
         if node.required_item_id is None:
             return "Free mutation. No material required."
 
@@ -876,9 +877,7 @@ class MutationScreen(BaseScreen):
         return f"{item_name}: Owned {owned}/{needed}"
 
     def _get_stat_text(self, node):
-        """
-        Converts stat modifier dictionary into readable text.
-        """
+        """Return readable stat bonus text."""
         stats_modifier = getattr(node, "stats_modifier", {})
 
         if not stats_modifier:
@@ -901,21 +900,11 @@ class MutationScreen(BaseScreen):
         return "   ".join(parts)
 
     def _get_skill_display_name(self, skill_id):
-        """
-        Converts skill id from JSON into readable combat skill name.
-        """
+        """Return a readable skill name."""
         if not skill_id:
             return None
 
-        skill_names = {
-            "venom_bite": "Venom Bite",
-            "toxic_bite": "Toxic Bite",
-            "sonic_pulse": "Sonic Pulse",
-            "sonic_pulse_plus": "Sonic Pulse+",
-            "beast_focus": "Beast Focus"
-        }
-
-        return skill_names.get(skill_id, skill_id.replace("_", " ").title())
+        return SkillLibrary.get_skill_name(skill_id)
 
     def _draw_wrapped_text(
         self,
@@ -928,6 +917,7 @@ class MutationScreen(BaseScreen):
         max_width,
         line_height
     ):
+        """Draw text across multiple lines."""
         words = str(text).split(" ")
         current_line = ""
 
@@ -964,10 +954,7 @@ class MutationScreen(BaseScreen):
         line_height,
         max_bottom
     ):
-        """
-        Draws wrapped text but stops before max_bottom.
-        If there is no more room, it silently stops to avoid overlap.
-        """
+        """Draw wrapped text without passing the bottom limit."""
         words = str(text).split(" ")
         current_line = ""
 
@@ -996,9 +983,7 @@ class MutationScreen(BaseScreen):
         return y
 
     def _fit_text_to_width(self, text, font, max_width):
-        """
-        Shortens text with ... so it fits inside a given width.
-        """
+        """Shorten text so it fits inside a width."""
         text = str(text)
 
         if font.size(text)[0] <= max_width:

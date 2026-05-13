@@ -1,34 +1,34 @@
+"""Base class for screen objects."""
+
 class BaseScreen:
-    """
-    Base class for all UI screens in the game.
-    Enforces a standard interface so the Screen Manager (Stack) can seamlessly
-    interact with any active screen.
-    """
+    """Common interface used by all game screens."""
     def __init__(self, screen_manager):
-        """
-        Args:
-            screen_manager (Stack): The state machine managing screen transitions.
-                                    Passed in so screens can push/pop themselves.
-        """
+        """Set up initial state."""
         self.screen_manager = screen_manager
 
     def handle_event(self, event):
-        """
-        Processes Pygame events (e.g., keyboard presses, mouse clicks).
-        Must be overridden by child classes.
-        """
+        """Handle the event."""
         pass
 
     def update(self):
-        """
-        Updates game logic (e.g., animations, timers) for the current frame.
-        Must be overridden by child classes.
-        """
+        """Update this screen for the current frame."""
         pass
 
     def draw(self, surface):
-        """
-        Renders the screen graphics onto the given Pygame surface.
-        Must be overridden by child classes.
-        """
+        """Draw this screen."""
         pass
+
+    def play_sfx(self, name):
+        """Play sfx."""
+        audio = getattr(self.screen_manager, "audio", None)
+
+        if audio:
+            audio.play_sfx(name)
+
+    def play_bgm(self, track_name):
+        """Play bgm."""
+        audio = getattr(self.screen_manager, "audio", None)
+
+        if audio:
+            audio.play_bgm(track_name)
+

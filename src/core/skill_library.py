@@ -1,25 +1,22 @@
+"""Combat skill definitions and loadout rules."""
+
 import copy
 
 
 class SkillLibrary:
-    """
-    Central place for combat skill definitions and loadout rules.
-
-    Rules:
-    - Basic Attack is always available.
-    - Zac can equip up to 4 combat skills.
-    - Venom Fang unlocks Venom Bite.
-    - Toxic Bite upgrades Venom Bite into Toxic Bite.
-    - Echolocation unlocks Sonic Pulse.
-    - Sonic Pulse Organ upgrades Sonic Pulse into Sonic Pulse+.
-    - Swift Legs unlocks Beast Focus.
-    """
+    """Defines player, ally, and mutation combat skills."""
 
     MAX_LOADOUT_SIZE = 4
 
     UPGRADE_REPLACEMENTS = {
         "venom_bite": "toxic_bite",
-        "sonic_pulse": "sonic_pulse_plus"
+        "sonic_pulse": "sonic_pulse_plus",
+        "guard_stance": "iron_guard"
+    }
+
+    ALLY_LOADOUTS = {
+        "p2": ["basic_attack", "first_aid"],
+        "p3": ["basic_attack", "shield_bash", "protective_guard"]
     }
 
     SKILL_ACTIONS = {
@@ -59,7 +56,7 @@ class SkillLibrary:
 
         "sonic_pulse": {
             "name": "Sonic Pulse",
-            "mult": 0.6,
+            "mult": 0.65,
             "target": "enemy",
             "status": {
                 "target": "enemy",
@@ -78,7 +75,7 @@ class SkillLibrary:
 
         "sonic_pulse_plus": {
             "name": "Sonic Pulse+",
-            "mult": 0.8,
+            "mult": 0.85,
             "target": "enemy",
             "status": {
                 "target": "enemy",
@@ -111,6 +108,82 @@ class SkillLibrary:
                     "amount": 1
                 }
             ]
+        },
+
+        "guard_stance": {
+            "name": "Guard Stance",
+            "mult": 0,
+            "target": "self",
+            "stage_changes": [
+                {
+                    "target": "self",
+                    "stat": "defense",
+                    "amount": 1
+                }
+            ]
+        },
+
+        "iron_guard": {
+            "name": "Iron Guard",
+            "mult": 0,
+            "target": "self",
+            "stage_changes": [
+                {
+                    "target": "self",
+                    "stat": "defense",
+                    "amount": 2
+                }
+            ]
+        },
+
+        "counter_shell": {
+            "name": "Counter Shell",
+            "mult": 0.75,
+            "target": "enemy",
+            "stage_changes": [
+                {
+                    "target": "self",
+                    "stat": "defense",
+                    "amount": 1
+                },
+                {
+                    "target": "enemy",
+                    "stat": "attack",
+                    "amount": -1
+                }
+            ]
+        },
+
+        "first_aid": {
+            "name": "First Aid",
+            "mult": 0,
+            "target": "ally",
+            "heal_amount": 24,
+            "clear_statuses": ["poison"]
+        },
+
+        "shield_bash": {
+            "name": "Shield Bash",
+            "mult": 0.75,
+            "target": "enemy",
+            "stage_change": {
+                "target": "enemy",
+                "stat": "attack",
+                "amount": -1
+            }
+        },
+
+        "protective_guard": {
+            "name": "Protective Guard",
+            "mult": 0,
+            "target": "self",
+            "stage_changes": [
+                {
+                    "target": "self",
+                    "stat": "defense",
+                    "amount": 1
+                }
+            ]
         }
     }
 
@@ -129,20 +202,45 @@ class SkillLibrary:
         },
         "sonic_pulse": {
             "description": "A sound-wave attack unlocked by Echolocation.",
-            "effect": "Deals 60% ATK damage, may paralyze, and lowers enemy SPD by 1 stage."
+            "effect": "Deals 65% ATK damage, may paralyze, and lowers enemy SPD by 1 stage."
         },
         "sonic_pulse_plus": {
             "description": "An upgraded sound-wave attack unlocked by Sonic Pulse Organ.",
-            "effect": "Deals 80% ATK damage, has stronger paralysis, and lowers enemy SPD by 2 stages."
+            "effect": "Deals 85% ATK damage, has stronger paralysis, and lowers enemy SPD by 2 stages."
         },
         "beast_focus": {
             "description": "A self-buff unlocked by Swift Legs.",
             "effect": "Raises Zac's ATK and SPD by 1 stage."
+        },
+        "guard_stance": {
+            "description": "A defensive mutation skill unlocked by Hardened Body.",
+            "effect": "Raises Zac's DEF by 1 stage."
+        },
+        "iron_guard": {
+            "description": "An upgraded defense skill unlocked by Thick Hide.",
+            "effect": "Raises Zac's DEF by 2 stages."
+        },
+        "counter_shell": {
+            "description": "A bone-plated counter technique unlocked by Bone Plating.",
+            "effect": "Deals 75% ATK damage, raises Zac's DEF, and lowers enemy ATK."
+        },
+        "first_aid": {
+            "description": "Mira's field support technique.",
+            "effect": "Restores 24 HP to one living ally and clears poison."
+        },
+        "shield_bash": {
+            "description": "Kael's frontline control strike.",
+            "effect": "Deals 75% ATK damage and lowers enemy ATK by 1 stage."
+        },
+        "protective_guard": {
+            "description": "Kael braces himself to hold the front line.",
+            "effect": "Raises Kael's DEF by 1 stage."
         }
     }
 
     @classmethod
     def get_unlocked_mutation_ids(cls, mutation_tree):
+        """Return the unlocked mutation ids."""
         if not mutation_tree:
             return set()
 
@@ -150,13 +248,7 @@ class SkillLibrary:
 
     @classmethod
     def get_available_skill_ids(cls, mutation_tree):
-        """
-        Returns all skills Zac has unlocked.
-
-        Upgrade mutations replace older skill versions:
-        - toxic_bite replaces venom_bite
-        - sonic_pulse_plus replaces sonic_pulse
-        """
+        """Return the available skill ids."""
         unlocked = cls.get_unlocked_mutation_ids(mutation_tree)
 
         skill_ids = ["basic_attack"]
@@ -176,18 +268,36 @@ class SkillLibrary:
         if "swift_legs" in unlocked:
             skill_ids.append("beast_focus")
 
+        if "hardened_body" in unlocked:
+            if "thick_hide" in unlocked:
+                skill_ids.append("iron_guard")
+            else:
+                skill_ids.append("guard_stance")
+
+        if "bone_plating" in unlocked:
+            skill_ids.append("counter_shell")
+
         return skill_ids
 
     @classmethod
+    def get_ally_skill_ids(cls, ally_id):
+        """Return the ally skill ids."""
+        return list(cls.ALLY_LOADOUTS.get(ally_id, ["basic_attack"]))
+
+    @classmethod
+    def auto_equip_new_skills(cls, loadout, mutation_tree):
+        """Keep the loadout valid after new skills unlock."""
+        cleaned = cls.sanitize_loadout(loadout, mutation_tree)
+
+        for skill_id in cls.get_available_skill_ids(mutation_tree):
+            if skill_id not in cleaned and len(cleaned) < cls.MAX_LOADOUT_SIZE:
+                cleaned.append(skill_id)
+
+        return cls.sanitize_loadout(cleaned, mutation_tree)
+
+    @classmethod
     def sanitize_loadout(cls, loadout, mutation_tree):
-        """
-        Cleans the saved skill loadout:
-        - Keeps only available skills.
-        - Always keeps Basic Attack.
-        - Replaces old skills with upgraded versions only when the upgrade is actually available.
-        - Removes duplicates.
-        - Limits to MAX_LOADOUT_SIZE.
-        """
+        """Remove invalid, duplicate, and extra skills from a loadout."""
         available = cls.get_available_skill_ids(mutation_tree)
         available_set = set(available)
 
@@ -199,7 +309,7 @@ class SkillLibrary:
         for skill_id in loadout:
             replacement_id = cls.UPGRADE_REPLACEMENTS.get(skill_id)
 
-            # Only replace old skill if the upgraded skill is already unlocked.
+            # Replace old skills only after the upgrade unlocks.
             if replacement_id and replacement_id in available_set:
                 final_skill_id = replacement_id
             else:
@@ -221,9 +331,7 @@ class SkillLibrary:
 
     @classmethod
     def build_action(cls, skill_id):
-        """
-        Returns a fresh action dictionary for combat.
-        """
+        """Create a fresh action dictionary for combat."""
         if skill_id not in cls.SKILL_ACTIONS:
             skill_id = "basic_attack"
 
@@ -231,6 +339,7 @@ class SkillLibrary:
 
     @classmethod
     def get_skill_name(cls, skill_id):
+        """Return the skill name."""
         return cls.SKILL_ACTIONS.get(
             skill_id,
             cls.SKILL_ACTIONS["basic_attack"]
@@ -238,6 +347,7 @@ class SkillLibrary:
 
     @classmethod
     def get_skill_info(cls, skill_id):
+        """Return the skill info."""
         return cls.SKILL_INFO.get(
             skill_id,
             {

@@ -1,3 +1,5 @@
+"""Combat skill loadout screen."""
+
 import pygame
 
 from src.screens.base_screen import BaseScreen
@@ -9,17 +11,12 @@ from src.ui.widgets import draw_panel, draw_text, draw_button
 
 
 class SkillLoadoutScreen(BaseScreen):
-    """
-    Lets the player choose up to 4 combat skills before battle.
-
-    Fixed:
-    - Detail panel reserves bottom action area.
-    - Long skill descriptions/effects are clamped.
-    - Button and loadout text no longer overlap.
-    """
+    """Screen for choosing Zac's equipped combat skills."""
 
     def __init__(self, screen_manager):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = "map"
 
         self.title_font = get_font(UITheme.HEADER_SIZE, bold=True)
         self.font = get_font(UITheme.BODY_SIZE, bold=True)
@@ -34,9 +31,7 @@ class SkillLoadoutScreen(BaseScreen):
         self._refresh()
 
     def _refresh(self):
-        """
-        Refresh available skills and sanitize saved loadout.
-        """
+        """Refresh the screen data from the current game state."""
         self.available_skill_ids = SkillLibrary.get_available_skill_ids(
             self.session.mutation_tree
         )
@@ -49,20 +44,22 @@ class SkillLoadoutScreen(BaseScreen):
         if self.selected_index >= len(self.available_skill_ids):
             self.selected_index = max(0, len(self.available_skill_ids) - 1)
 
-    # ============================================================
-    # INPUT
-    # ============================================================
+    # Input
 
     def handle_event(self, event):
+        """Handle the event."""
         if event.type == pygame.KEYDOWN:
 
             if event.key == pygame.K_ESCAPE:
+                self.play_sfx("click")
                 self.screen_manager.pop()
 
             elif event.key == pygame.K_UP:
+                self.play_sfx("click")
                 self.selected_index = max(0, self.selected_index - 1)
 
             elif event.key == pygame.K_DOWN:
+                self.play_sfx("click")
                 if self.available_skill_ids:
                     self.selected_index = min(
                         len(self.available_skill_ids) - 1,
@@ -73,6 +70,7 @@ class SkillLoadoutScreen(BaseScreen):
                 self._toggle_selected_skill()
 
     def _toggle_selected_skill(self):
+        """Equip or remove the selected skill."""
         if not self.available_skill_ids:
             return
 
@@ -80,19 +78,23 @@ class SkillLoadoutScreen(BaseScreen):
         loadout = self.session.skill_loadout
 
         if skill_id == "basic_attack":
+            self.play_sfx("error")
             self.status_msg = "Basic Attack is always equipped."
             return
 
         if skill_id in loadout:
             loadout.remove(skill_id)
+            self.play_sfx("click")
             self.status_msg = f"Unequipped {SkillLibrary.get_skill_name(skill_id)}."
 
         else:
             if len(loadout) >= SkillLibrary.MAX_LOADOUT_SIZE:
+                self.play_sfx("error")
                 self.status_msg = "Loadout full. Unequip another skill first."
                 return
 
             loadout.append(skill_id)
+            self.play_sfx("success")
             self.status_msg = f"Equipped {SkillLibrary.get_skill_name(skill_id)}."
 
         self.session.skill_loadout = SkillLibrary.sanitize_loadout(
@@ -103,13 +105,13 @@ class SkillLoadoutScreen(BaseScreen):
         self._refresh()
 
     def update(self):
+        """Update this screen for the current frame."""
         pass
 
-    # ============================================================
-    # DRAW
-    # ============================================================
+    # Drawing
 
     def draw(self, surface):
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 
@@ -244,6 +246,7 @@ class SkillLoadoutScreen(BaseScreen):
         )
 
     def _draw_skill_list(self, surface, panel_rect):
+        """Draw the available skill list."""
         if not self.available_skill_ids:
             draw_text(
                 surface,
@@ -350,6 +353,7 @@ class SkillLoadoutScreen(BaseScreen):
             )
 
     def _draw_skill_details(self, surface, panel_rect):
+        """Draw details for the selected skill."""
         if not self.available_skill_ids:
             draw_text(
                 surface,
@@ -488,9 +492,7 @@ class SkillLoadoutScreen(BaseScreen):
             is_selected=can_toggle
         )
 
-    # ============================================================
-    # TEXT HELPERS
-    # ============================================================
+    # Text helpers
 
     def _draw_detail_section(
         self,
@@ -503,6 +505,7 @@ class SkillLoadoutScreen(BaseScreen):
         max_width,
         max_bottom
     ):
+        """Draw one titled detail section."""
         title_height = 24
         line_height = 23
         gap_after_title = 25
@@ -550,6 +553,7 @@ class SkillLoadoutScreen(BaseScreen):
         line_height,
         max_bottom
     ):
+        """Draw wrapped text without passing the bottom limit."""
         words = str(text).split(" ")
         current_line = ""
 
@@ -578,6 +582,7 @@ class SkillLoadoutScreen(BaseScreen):
         return y
 
     def _fit_text_to_width(self, text, font, max_width):
+        """Shorten text so it fits inside a width."""
         text = str(text)
 
         if font.size(text)[0] <= max_width:

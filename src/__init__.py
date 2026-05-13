@@ -1,1 +1,3 @@
+"""Mutation RPG source package."""
+
 

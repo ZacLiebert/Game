@@ -1,3 +1,5 @@
+"""Shop screen."""
+
 import pygame
 
 from src.screens.base_screen import BaseScreen
@@ -7,21 +9,15 @@ from src.ui.widgets import draw_panel, draw_text, draw_button
 
 
 class ShopScreen(BaseScreen):
-    """
-    Shop UI screen.
-
-    Controls:
-    - TAB / LEFT / RIGHT: Switch Buy / Sell mode
-    - UP / DOWN: Select item
-    - ENTER: Buy or sell selected item
-    - ESC: Back to map
-    """
+    """Shop screen for buying and selling items."""
 
     MODE_BUY = "BUY"
     MODE_SELL = "SELL"
 
     def __init__(self, screen_manager, npc):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = "map"
 
         self.npc = npc
         self.session = self.screen_manager.game_session
@@ -35,22 +31,18 @@ class ShopScreen(BaseScreen):
 
         self.mode = self.MODE_BUY
         self.selected_index = 0
-        self.status_msg = "Welcome! TAB: Buy/Sell | ENTER: Confirm | ESC: Back"
+        self.status_msg = (
+            "Rhea: Med Kits heal, Serums boost stats, Revive Shots restore fallen allies."
+        )
 
         self.shop_items = self._load_shop_items()
         self.display_items = []
         self._refresh_display_items()
 
-    # ============================================================
-    # DATA HELPERS
-    # ============================================================
+    # Data helpers
 
     def _load_shop_items(self):
-        """
-        Loads item objects from NPC shop_items list.
-        Example from maps.json:
-            "shop_items": ["pot_hp_small"]
-        """
+        """Load the shop items."""
         items = []
 
         for item_id in getattr(self.npc, "shop_items", []):
@@ -62,9 +54,7 @@ class ShopScreen(BaseScreen):
         return items
 
     def _refresh_display_items(self):
-        """
-        Refreshes item list based on current mode.
-        """
+        """Refresh the item list for the current shop mode."""
         if self.mode == self.MODE_BUY:
             self.display_items = self.shop_items
         else:
@@ -74,6 +64,7 @@ class ShopScreen(BaseScreen):
             self.selected_index = max(0, len(self.display_items) - 1)
 
     def _get_selected_item(self):
+        """Return the currently selected item."""
         if not self.display_items:
             return None
 
@@ -83,6 +74,7 @@ class ShopScreen(BaseScreen):
         return self.display_items[self.selected_index]
 
     def _switch_mode(self):
+        """Switch between buy and sell mode."""
         if self.mode == self.MODE_BUY:
             self.mode = self.MODE_SELL
             self.status_msg = "Sell mode: choose an item from inventory."
@@ -93,26 +85,29 @@ class ShopScreen(BaseScreen):
         self.selected_index = 0
         self._refresh_display_items()
 
-    # ============================================================
-    # INPUT
-    # ============================================================
+    # Input
 
     def handle_event(self, event):
+        """Handle the event."""
         if event.type != pygame.KEYDOWN:
             return
 
         if event.key == pygame.K_ESCAPE:
+            self.play_sfx("click")
             self.screen_manager.pop()
             return
 
         elif event.key in (pygame.K_TAB, pygame.K_LEFT, pygame.K_RIGHT):
+            self.play_sfx("click")
             self._switch_mode()
             return
 
         elif event.key == pygame.K_UP:
+            self.play_sfx("click")
             self.selected_index = max(0, self.selected_index - 1)
 
         elif event.key == pygame.K_DOWN:
+            self.play_sfx("click")
             if self.display_items:
                 self.selected_index = min(
                     len(self.display_items) - 1,
@@ -125,69 +120,75 @@ class ShopScreen(BaseScreen):
             else:
                 self._sell_selected_item()
 
-    # ============================================================
-    # SHOP ACTIONS
-    # ============================================================
+    # Shop actions
 
     def _buy_selected_item(self):
+        """Buy the selected shop item if possible."""
         item = self._get_selected_item()
 
         if not item:
+            self.play_sfx("error")
             self.status_msg = "No item selected."
             return
 
         price = getattr(item, "buy_price", 0)
 
         if price <= 0:
+            self.play_sfx("error")
             self.status_msg = f"{item.name} cannot be bought."
             return
 
         if self.session.gold < price:
+            self.play_sfx("error")
             self.status_msg = f"Not enough gold. Need {price}G."
             return
 
         self.session.gold -= price
         self.inventory.add_item(item)
 
+        self.play_sfx("success")
         self.status_msg = f"Bought {item.name} for {price}G."
 
     def _sell_selected_item(self):
+        """Sell the selected inventory item if possible."""
         item = self._get_selected_item()
 
         if not item:
+            self.play_sfx("error")
             self.status_msg = "No item selected."
             return
 
         price = getattr(item, "sell_price", 0)
 
         if price <= 0:
+            self.play_sfx("error")
             self.status_msg = f"{item.name} cannot be sold."
             return
 
         removed = self.inventory.remove_item_by_id(item.item_id)
 
         if not removed:
+            self.play_sfx("error")
             self.status_msg = f"You do not have {item.name}."
             self._refresh_display_items()
             return
 
         self.session.gold += price
+        self.play_sfx("success")
         self.status_msg = f"Sold {item.name} for {price}G."
 
         self._refresh_display_items()
 
-    # ============================================================
-    # UPDATE
-    # ============================================================
+    # Update
 
     def update(self):
+        """Update this screen for the current frame."""
         pass
 
-    # ============================================================
-    # DRAW
-    # ============================================================
+    # Drawing
 
     def draw(self, surface):
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 
@@ -331,6 +332,7 @@ class ShopScreen(BaseScreen):
         )
 
     def _draw_item_list(self, surface, panel_rect):
+        """Draw the item list panel."""
         x = panel_rect.x + 22
         y = panel_rect.y + 70
         row_h = 42
@@ -417,6 +419,7 @@ class ShopScreen(BaseScreen):
             )
 
     def _draw_item_details(self, surface, panel_rect):
+        """Draw details for the selected item."""
         item = self._get_selected_item()
 
         x = panel_rect.x + 24
@@ -496,6 +499,28 @@ class ShopScreen(BaseScreen):
             26
         )
 
+        if getattr(item, "item_type", "") == "potion" and hasattr(item, "get_effect_summary"):
+            y += 15
+            draw_text(
+                surface,
+                "Effect:",
+                self.small_font,
+                UITheme.ACCENT,
+                x,
+                y
+            )
+            y += 28
+            y = self._draw_wrapped_text(
+                surface,
+                item.get_effect_summary(),
+                self.small_font,
+                UITheme.TEXT_DIM,
+                x,
+                y,
+                max_width,
+                24
+            )
+
         y += 25
 
         action_rect = pygame.Rect(
@@ -518,11 +543,10 @@ class ShopScreen(BaseScreen):
             is_selected=True
         )
 
-    # ============================================================
-    # TEXT HELPERS
-    # ============================================================
+    # Text helpers
 
     def _draw_wrapped_text(self, surface, text, font, color, x, y, max_width, line_height):
+        """Draw text across multiple lines."""
         words = str(text).split(" ")
         current_line = ""
 
@@ -548,6 +572,7 @@ class ShopScreen(BaseScreen):
         return y
 
     def _fit_text_to_width(self, text, font, max_width):
+        """Shorten text so it fits inside a width."""
         text = str(text)
 
         if font.size(text)[0] <= max_width:

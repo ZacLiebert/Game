@@ -1,3 +1,5 @@
+"""Font loading helper."""
+
 import pygame
 
 
@@ -14,11 +16,7 @@ FONT_CANDIDATES = [
 
 
 def get_font(size, bold=False, italic=False):
-    """
-    Returns a consistent UI font for the whole project.
-
-    The size is reduced slightly so the new font does not overflow old UI boxes.
-    """
+    """Return the font."""
     font_name = None
 
     for candidate in FONT_CANDIDATES:

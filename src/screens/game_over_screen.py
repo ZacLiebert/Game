@@ -1,18 +1,21 @@
+"""Game-over screen."""
+
 import pygame
 
 from src.screens.base_screen import BaseScreen
 from src.ui.theme import UITheme
 from src.ui.fonts import get_font
-from src.ui.widgets import draw_panel, draw_text, draw_centered_text, draw_button
+from src.ui.widgets import draw_panel, draw_centered_text, draw_button
 
 
 class GameOverScreen(BaseScreen):
-    """
-    Game Over screen displayed when the entire party is defeated.
-    """
+    """Game-over screen with restart and menu options."""
 
     def __init__(self, screen_manager):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = None
+        self.play_sfx("game_over")
 
         self.title_font = get_font(76)
         self.header_font = get_font(UITheme.HEADER_SIZE)
@@ -20,15 +23,19 @@ class GameOverScreen(BaseScreen):
         self.small_font = get_font(UITheme.SMALL_SIZE)
 
     def handle_event(self, event):
+        """Handle the event."""
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                self.play_sfx("click")
                 while self.screen_manager.size() > 1:
                     self.screen_manager.pop()
 
     def update(self):
+        """Update this screen for the current frame."""
         pass
 
     def draw(self, surface):
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
         center_x = screen_w // 2
@@ -122,9 +129,7 @@ class GameOverScreen(BaseScreen):
         )
 
     def _draw_warning_background(self, surface):
-        """
-        Draws simple red warning grid lines.
-        """
+        """Draw the warning background."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 

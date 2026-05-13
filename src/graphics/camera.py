@@ -1,8 +1,11 @@
+"""Camera helper for scrolling maps."""
+
 import pygame
 
 class Camera:
+    """Keeps the map view centered on the player."""
     def __init__(self, width, height, map_width, map_height):
-        # The rectangle representing the camera's view
+        """Set up initial state."""
         self.camera = pygame.Rect(0, 0, width, height)
         self.width = width
         self.height = height
@@ -10,11 +13,11 @@ class Camera:
         self.map_height = map_height
 
     def apply(self, entity_rect):
-        """Returns a new rect shifted by the camera offset."""
+        """Apply the camera offset to a rectangle."""
         return entity_rect.move(self.camera.topleft)
 
     def update(self, target_rect):
-        """Strictly centers the camera on the player at all times."""
+        """Move the camera to follow the target."""
         x = -target_rect.centerx + int(self.width / 2)
         y = -target_rect.centery + int(self.height / 2)
 

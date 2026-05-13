@@ -1,97 +1,78 @@
+"""Turn-order helpers for combat."""
+
+
 class CombatManager:
-    """
-    Manages a 3vs3 turn-based battle.
-
-    This version uses linear scan instead of MaxHeap.
-
-    Why:
-    - Combat only has up to 6 entities.
-    - Speed can change during a round.
-    - Linear scan always uses the latest speed value.
-    - Simpler and less bug-prone than updating heap priority.
-    """
+    """Controls turn order and battle status for small 3v3 fights."""
 
     def __init__(self, player_team, enemy_team):
+        """Set up initial state."""
         self.player_team = player_team
         self.enemy_team = enemy_team
-
-        # Remaining entities that have not acted in the current round.
-        self.turn_queue = []
-
+        self._remaining_entities = []
         self.round_count = 0
 
+    def _team_order(self):
+        """Return the stable turn order used to break speed ties."""
+        return self.player_team + self.enemy_team
+
+    def _add_remaining_entity(self, entity):
+        """Add remaining entity."""
+        for existing in self._remaining_entities:
+            if existing is entity:
+                return
+
+        self._remaining_entities.append(entity)
+
     def prepare_round(self):
-        """
-        Starts a new round and collects all living entities.
-        """
+        """Start a new round with all living combatants."""
         self.round_count += 1
-        self.turn_queue = []
+        self._remaining_entities = []
 
-        for player in self.player_team:
-            if player.is_alive():
-                self.turn_queue.append(player)
-
-        for enemy in self.enemy_team:
-            if enemy.is_alive():
-                self.turn_queue.append(enemy)
+        for entity in self._team_order():
+            if entity.is_alive():
+                self._add_remaining_entity(entity)
 
     def get_next_in_line(self):
-        """
-        Finds and removes the living entity with the highest current speed.
-
-        Since speed can change during combat, this method scans the remaining
-        turn_queue every time. That means speed buffs/debuffs affect the current
-        round immediately if the target has not acted yet.
-        """
+        """Return the next in line."""
         self.remove_dead_from_queue()
 
-        if not self.turn_queue:
+        if not self._remaining_entities:
             return None
 
         best_index = 0
-        best_entity = self.turn_queue[0]
+        best_entity = self._remaining_entities[0]
 
-        for i in range(1, len(self.turn_queue)):
-            entity = self.turn_queue[i]
+        for index in range(1, len(self._remaining_entities)):
+            candidate = self._remaining_entities[index]
+            if candidate.speed > best_entity.speed:
+                best_index = index
+                best_entity = candidate
 
-            if entity.speed > best_entity.speed:
-                best_index = i
-                best_entity = entity
-
-        return self.turn_queue.pop(best_index)
+        return self._remaining_entities.pop(best_index)
 
     def refresh_turn_order(self):
-        """
-        Keeps compatibility with CombatScreen.
-
-        With linear scan, we do not need to rebuild a heap.
-        We only remove dead entities. The next get_next_in_line() call will
-        automatically use the latest speed values.
-        """
+        """Refresh remaining turns after deaths or speed changes."""
         self.remove_dead_from_queue()
 
     def remove_dead_from_queue(self):
-        """
-        Removes dead entities from the remaining turn queue.
-        """
-        self.turn_queue = [
-            entity for entity in self.turn_queue
-            if entity.is_alive()
-        ]
+        """Remove defeated combatants from the turn list."""
+        living_entities = []
+
+        for entity in self._remaining_entities:
+            if entity.is_alive():
+                living_entities.append(entity)
+
+        self._remaining_entities = living_entities
 
     def get_valid_targets(self, target_team):
-        """
-        Returns living entities in the target team.
-        """
+        """Return the valid targets."""
         return [
             entity for entity in target_team
             if entity.is_alive()
         ]
 
     def check_battle_status(self):
-        """
-        Determines whether the battle is over.
-        """
+        """Return whether the player won, lost, or battle continues."""
         if not self.get_valid_targets(self.enemy_team):
             return "VICTORY"
 

@@ -1,1 +1,3 @@
+"""Game entity classes."""
+
 

@@ -10,20 +10,20 @@
     },
     {
         "id": "p2",
-        "name": "Tanker",
+        "name": "Mira",
+        "hp": 90,
+        "attack": 11,
+        "defense": 6,
+        "speed": 11,
+        "sprite": "mira_battle.png"
+    },
+    {
+        "id": "p3",
+        "name": "Kael",
         "hp": 140,
         "attack": 10,
         "defense": 12,
         "speed": 5,
-        "sprite": "tanker_battle.png"
-    },
-    {
-        "id": "p3",
-        "name": "Rogue",
-        "hp": 80,
-        "attack": 18,
-        "defense": 4,
-        "speed": 15,
-        "sprite": "rogue_battle.png"
+        "sprite": "kael_battle.png"
     }
 ]

@@ -1,3 +1,5 @@
+"""Inventory screen."""
+
 import pygame
 
 from src.screens.base_screen import BaseScreen
@@ -7,18 +9,12 @@ from src.ui.widgets import draw_panel, draw_text, draw_button
 
 
 class InventoryScreen(BaseScreen):
-    """
-    Inventory UI screen.
-
-    Fixed:
-    - No text beside button.
-    - Detail content cannot overlap Zac status / button.
-    - Long text is shortened or clamped.
-    - Item list scrolls safely based on panel height.
-    """
+    """Inventory screen for viewing and using items."""
 
     def __init__(self, screen_manager):
+        """Set up initial state."""
         super().__init__(screen_manager)
+        self.music_track = "map"
 
         self.title_font = get_font(UITheme.HEADER_SIZE, bold=True)
         self.font = get_font(UITheme.BODY_SIZE, bold=True)
@@ -33,14 +29,14 @@ class InventoryScreen(BaseScreen):
         self.selected_index = 0
         self.status_msg = "Type to search | TAB: Sort | ENTER: Use | ESC: Back"
 
-    # ============================================================
-    # INPUT
-    # ============================================================
+    # Input
 
     def handle_event(self, event):
+        """Handle the event."""
         if event.type == pygame.KEYDOWN:
 
             if event.key == pygame.K_ESCAPE:
+                self.play_sfx("click")
                 self.screen_manager.pop()
 
             elif event.key == pygame.K_TAB:
@@ -49,9 +45,11 @@ class InventoryScreen(BaseScreen):
                 self.status_msg = "Inventory sorted by item name using Quick Sort."
 
             elif event.key == pygame.K_UP:
+                self.play_sfx("click")
                 self.selected_index = max(0, self.selected_index - 1)
 
             elif event.key == pygame.K_DOWN:
+                self.play_sfx("click")
                 if self.display_items:
                     self.selected_index = min(
                         len(self.display_items) - 1,
@@ -75,44 +73,55 @@ class InventoryScreen(BaseScreen):
                 self._refresh_display()
 
     def _use_selected_item(self):
-        """
-        Uses the selected item if it is a consumable potion.
-        """
+        """Use the currently selected item when possible."""
         if not self.display_items:
+            self.play_sfx("error")
             self.status_msg = "No item selected."
             return
 
         item = self.display_items[self.selected_index]
         session = self.screen_manager.game_session
-        zac = session.party[0]
 
-        if item.item_type == "potion":
-            item.apply_effect(zac)
-
-            if hasattr(zac, "max_hp"):
-                zac.current_hp = min(zac.current_hp, zac.max_hp)
-
-            self.inv_manager.remove_item_by_id(item.item_id)
-            self._refresh_display()
-
-            self.status_msg = f"Used {item.name}. Zac HP: {zac.current_hp}/{zac.max_hp}"
-        else:
+        if item.item_type != "potion":
+            self.play_sfx("error")
             self.status_msg = f"{item.name} is a {item.item_type}, not a usable item."
+            return
+
+        if getattr(item, "needs_defeated_target", lambda: False)():
+            candidates = [member for member in session.party if not member.is_alive()]
+        else:
+            candidates = [member for member in session.party if member.is_alive()]
+
+        target = candidates[0] if candidates else None
+
+        if not getattr(item, "can_use_on", lambda _target: False)(target):
+            self.play_sfx("error")
+            self.status_msg = f"No valid target for {item.name}."
+            return
+
+        messages = item.apply_effect(target)
+        self.inv_manager.remove_item_by_id(item.item_id)
+        self._refresh_display()
+
+        self.play_sfx("success")
+        short_message = messages[0] if messages else f"Used {item.name}."
+        self.status_msg = f"Used {item.name} on {target.name}. {short_message}"
 
     def _refresh_display(self):
+        """Refresh the visible item list."""
         self.display_items = self.inv_manager.search_items(self.search_query)
 
         if self.selected_index >= len(self.display_items):
             self.selected_index = max(0, len(self.display_items) - 1)
 
     def update(self):
+        """Update this screen for the current frame."""
         pass
 
-    # ============================================================
-    # DRAW
-    # ============================================================
+    # Drawing
 
     def draw(self, surface):
+        """Draw this screen."""
         screen_w = surface.get_width()
         screen_h = surface.get_height()
 
@@ -265,6 +274,7 @@ class InventoryScreen(BaseScreen):
         )
 
     def _draw_item_list(self, surface, panel_rect):
+        """Draw the item list panel."""
         if not self.display_items:
             draw_text(
                 surface,
@@ -365,6 +375,7 @@ class InventoryScreen(BaseScreen):
             )
 
     def _draw_item_details(self, surface, panel_rect):
+        """Draw details for the selected item."""
         if not self.display_items:
             draw_text(
                 surface,
@@ -440,12 +451,7 @@ class InventoryScreen(BaseScreen):
         )
 
         if item.item_type == "potion":
-            heal_amount = getattr(item, "heal_amount", 0)
-
-            if heal_amount > 0:
-                effect = f"Heals {heal_amount} HP."
-            else:
-                effect = "Consumable item."
+            effect = item.get_effect_summary() if hasattr(item, "get_effect_summary") else "Consumable item."
         elif item.item_type == "material":
             effect = "Used as mutation material."
         else:
@@ -535,9 +541,7 @@ class InventoryScreen(BaseScreen):
             is_selected=can_use
         )
 
-    # ============================================================
-    # TEXT HELPERS
-    # ============================================================
+    # Text helpers
 
     def _draw_detail_section(
         self,
@@ -550,6 +554,7 @@ class InventoryScreen(BaseScreen):
         max_width,
         max_bottom
     ):
+        """Draw one titled detail section."""
         title_height = 24
         line_height = 23
         gap_after_title = 25
@@ -597,6 +602,7 @@ class InventoryScreen(BaseScreen):
         line_height,
         max_bottom
     ):
+        """Draw wrapped text without passing the bottom limit."""
         words = str(text).split(" ")
         current_line = ""
 
@@ -625,6 +631,7 @@ class InventoryScreen(BaseScreen):
         return y
 
     def _fit_text_to_width(self, text, font, max_width):
+        """Shorten text so it fits inside a width."""
         text = str(text)
 
         if font.size(text)[0] <= max_width:

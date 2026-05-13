@@ -1,16 +1,10 @@
+"""Base combat entity logic."""
+
 import random
 
 
 class Entity:
-    """
-    Represents a combat entity such as Zac, allies, or enemies.
-
-    Supports:
-    - Permanent base stats: HP, ATK, DEF, SPD
-    - Stat stages using multiplier system
-    - Status effects: poison, paralysis
-    - Loot drop data for enemies
-    """
+    """Base class for all combat-capable characters."""
 
     STAT_STAGE_MULTIPLIERS = {
         -2: 0.25,
@@ -39,6 +33,7 @@ class Entity:
         gold_reward=0,
         enemy_skill_ids=None
     ):
+        """Set up initial state."""
         self.entity_id = entity_id
         self.name = name
 
@@ -66,41 +61,47 @@ class Entity:
 
         self.status_effects = []
 
-    # =========================
-    # EFFECTIVE STATS
-    # =========================
+    # Effective combat stats
 
     @property
     def attack(self):
+        """Return the effective attack stat."""
         return self._get_effective_stat("attack", self.base_attack)
 
     @attack.setter
     def attack(self, value):
+        """Set the effective attack stat."""
         self.base_attack = value
 
     @property
     def defense(self):
+        """Return the effective defense stat."""
         return self._get_effective_stat("defense", self.base_defense)
 
     @defense.setter
     def defense(self, value):
+        """Set the effective defense stat."""
         self.base_defense = value
 
     @property
     def speed(self):
+        """Return the effective speed stat."""
         return self._get_effective_stat("speed", self.base_speed)
 
     @speed.setter
     def speed(self, value):
+        """Set the effective speed stat."""
         self.base_speed = value
 
     def _get_effective_stat(self, stat_name, base_value):
+        """Return a stat after applying its stage multiplier."""
         stage = self.stat_stages.get(stat_name, 0)
         multiplier = self.STAT_STAGE_MULTIPLIERS.get(stage, 1.0)
 
         return max(1, int(base_value * multiplier))
 
     def change_stat_stage(self, stat_name, amount):
+        """Raise or lower a temporary combat stat stage."""
         if stat_name not in self.stat_stages:
             return f"{self.name} has no stat named {stat_name}."
 
@@ -121,39 +122,41 @@ class Entity:
         return f"{self.name}'s {stat_name.upper()} fell to stage {new_stage}!"
 
     def reset_stat_stages(self):
+        """Reset temporary combat stat stages."""
         self.stat_stages = {
             "attack": 0,
             "defense": 0,
             "speed": 0
         }
 
-    # =========================
-    # BASIC COMBAT METHODS
-    # =========================
+    # Basic combat actions
 
     def is_alive(self):
+        """Return whether this entity still has HP."""
         return self.current_hp > 0
 
     def take_damage(self, amount):
+        """Apply defense-reduced damage and return the final amount."""
         damage = max(1, amount - self.defense)
         self.current_hp -= damage
         self.current_hp = max(0, self.current_hp)
         return damage
 
     def take_true_damage(self, amount):
+        """Apply direct damage that ignores defense."""
         damage = max(0, amount)
         self.current_hp -= damage
         self.current_hp = max(0, self.current_hp)
         return damage
 
     def heal(self, amount):
+        """Restore HP without passing max HP."""
         self.current_hp = min(self.max_hp, self.current_hp + amount)
 
-    # =========================
-    # STATUS EFFECT SYSTEM
-    # =========================
+    # Status effects
 
     def add_status(self, status_type, duration, power=0, chance=1.0):
+        """Add or refresh a status effect."""
         for effect in self.status_effects:
             if effect.get("type") == status_type:
                 effect["duration"] = max(effect.get("duration", 0), duration)
@@ -169,6 +172,7 @@ class Entity:
         })
 
     def has_status(self, status_type):
+        """Return whether a status effect is active."""
         for effect in self.status_effects:
             if effect.get("type") == status_type:
                 return True
@@ -176,6 +180,7 @@ class Entity:
         return False
 
     def process_start_turn_status(self):
+        """Apply poison or paralysis at turn start."""
         messages = []
         skip_turn = False
 
@@ -216,6 +221,7 @@ class Entity:
         return messages, skip_turn
 
     def get_status_summary(self):
+        """Return short text for active statuses and stat stages."""
         parts = []
 
         for effect in self.status_effects:

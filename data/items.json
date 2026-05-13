@@ -49,11 +49,111 @@
     },
     {
         "id": "pot_hp_small",
-        "name": "Small Health Potion",
-        "description": "Heals 20 HP.",
+        "name": "Small Med Kit",
+        "description": "Restores 20 HP to one living ally.",
         "type": "potion",
         "heal_amount": 20,
         "buy_price": 25,
         "sell_price": 8
+    },
+    {
+        "id": "pot_hp_medium",
+        "name": "Med Kit",
+        "description": "Restores 30 HP to one living ally.",
+        "type": "potion",
+        "heal_amount": 30,
+        "buy_price": 38,
+        "sell_price": 13
+    },
+    {
+        "id": "pot_hp_large",
+        "name": "Advanced Med Kit",
+        "description": "Restores 50 HP to one living ally.",
+        "type": "potion",
+        "heal_amount": 50,
+        "buy_price": 60,
+        "sell_price": 20
+    },
+    {
+        "id": "pot_atk_1",
+        "name": "Adrenal Serum I",
+        "description": "Raises one living ally's Attack by 1 combat stage.",
+        "type": "potion",
+        "stat_stage_changes": [
+            {
+                "stat": "attack",
+                "amount": 1
+            }
+        ],
+        "buy_price": 45,
+        "sell_price": 15
+    },
+    {
+        "id": "pot_atk_2",
+        "name": "Adrenal Serum II",
+        "description": "Raises one living ally's Attack by 2 combat stages.",
+        "type": "potion",
+        "stat_stage_changes": [
+            {
+                "stat": "attack",
+                "amount": 2
+            }
+        ],
+        "buy_price": 80,
+        "sell_price": 28
+    },
+    {
+        "id": "pot_spd_1",
+        "name": "Sprint Serum I",
+        "description": "Raises one living ally's Speed by 1 combat stage.",
+        "type": "potion",
+        "stat_stage_changes": [
+            {
+                "stat": "speed",
+                "amount": 1
+            }
+        ],
+        "buy_price": 40,
+        "sell_price": 14
+    },
+    {
+        "id": "pot_spd_2",
+        "name": "Sprint Serum II",
+        "description": "Raises one living ally's Speed by 2 combat stages.",
+        "type": "potion",
+        "stat_stage_changes": [
+            {
+                "stat": "speed",
+                "amount": 2
+            }
+        ],
+        "buy_price": 72,
+        "sell_price": 25
+    },
+    {
+        "id": "pot_revive_small",
+        "name": "Revive Shot I",
+        "description": "Revives one defeated ally with 30 HP.",
+        "type": "potion",
+        "revive_amount": 30,
+        "buy_price": 95,
+        "sell_price": 32
+    },
+    {
+        "id": "pot_revive_large",
+        "name": "Revive Shot II",
+        "description": "Revives one defeated ally with 60 HP.",
+        "type": "potion",
+        "revive_amount": 60,
+        "buy_price": 145,
+        "sell_price": 50
+    },
+    {
+        "id": "alpha_core",
+        "name": "Alpha Core",
+        "description": "The unstable core driving the mutation outbreak. Proof that Alpha Chimera was contained.",
+        "type": "material",
+        "buy_price": 0,
+        "sell_price": 100
     }
 ]
