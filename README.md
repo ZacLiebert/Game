@@ -103,7 +103,7 @@ The project includes these DSA-focused parts that are actually implemented and u
 - Greedy utility-based enemy AI for smart skill selection
 - Manual linear turn selection for 3vs3 combat order by speed
 
-Enemy combat is not purely random. Each enemy evaluates its available skills against the living player targets and chooses the highest-scoring skill-target pair based on expected damage, kill potential, status value, and buff/debuff usefulness. Mira now has First Aid, Kael has Shield Bash / Protective Guard, and Zac's defensive mutation path unlocks Guard Stance / Iron Guard / Counter Shell. See `ALGORITHMS.md` for details.
+Enemy combat is not purely random. Each enemy evaluates its available skills against the living player targets and chooses the highest-scoring skill-target pair based on expected damage, kill potential, status value, and buff/debuff usefulness. Mira now has First Aid, Kael has Shield Bash / Protective Guard, and Zac's defensive mutation path unlocks Guard Stance / Iron Guard / Counter Shell. 
 
 Random encounters also use light regional weighting so material farming feels less arbitrary: cave-side paths favor bats/snakes, forest-edge paths favor boars/rabbits/tigers, and the eastern pass can spawn bears after the Bear boss is defeated.
 

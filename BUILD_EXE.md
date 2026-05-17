@@ -1,26 +1,20 @@
-# Build game thành `.exe`
+## Build as EXE
 
-Dùng các file này để đóng gói game thành file chạy trên Windows bằng PyInstaller.
+The game can be built into a Windows `.exe` file using PyInstaller.
 
-## Cách nhanh nhất trên Windows
-
-1. Cài Python 3.10+ nếu máy chưa có.
-2. Mở thư mục project `MutationRPG`.
-3. Chạy file:
+Run:
 
 ```bat
 build_exe.bat
 ```
 
-Sau khi build xong, file game sẽ nằm ở:
+The output file will be created here:
 
 ```text
 dist\MutationRPG.exe
 ```
 
-Bạn có thể gửi file `MutationRPG.exe` này cho giáo viên để chạy game.
-
-## Cách chạy thủ công
+To build manually:
 
 ```bat
 py -3 -m pip install -r requirements.txt
@@ -28,8 +22,4 @@ py -3 -m pip install -r requirements-build.txt
 py -3 build_exe.py
 ```
 
-## Ghi chú
-
-- Nên build trên Windows nếu muốn tạo file `.exe` cho Windows.
-- PyInstaller tạo file chạy theo hệ điều hành hiện tại. Nếu build trên macOS/Linux thì kết quả sẽ không phải file `.exe` Windows.
-- Save game sẽ được tạo trong thư mục `dist\save_data` khi chạy file `.exe`.
+Note: The `dist` folder and `.exe` file are generated build files, so they are not included in the GitHub repository.
